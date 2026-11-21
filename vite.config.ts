@@ -7,4 +7,7 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  server: {
+   allowedHosts: ['dashboard-peat.amarmsd.my.id'],
+  }
 });
