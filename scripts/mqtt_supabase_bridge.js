@@ -26,9 +26,9 @@ console.log(`🗄️  Menghubungkan ke Database Supabase: ${SUPABASE_URL}`);
 
 // Sensor node metadata mapping
 const sensorNodes = {
-  1: { id: "PG-001", name: "Titik Pantau 1 - Rangsang Barat", region: "Kep. Meranti, Riau" },
-  2: { id: "PG-002", name: "Titik Pantau 2 - Sungai Tohor", region: "Kep. Meranti, Riau" },
-  3: { id: "PG-003", name: "Titik Pantau 3 - Kuala Kampar", region: "Pelalawan, Riau" },
+  1: { id: "PG-001", name: "Parongpong", region: "Bandung" },
+  2: { id: "PG-002", name: "Baleendah", region: "Bandung" },
+  3: { id: "PG-003", name: "Rancaupas", region: "Bandung" },
 };
 
 // Current cached states
@@ -158,9 +158,9 @@ client.on("message", async (topic, payload) => {
     const { error: logError } = await supabase.from("sensor_logs").insert([logPayload]);
 
     if (logError) {
-      console.warn(`⚠️ Catatan Supabase (sensor_logs): ${logError.message}`);
+      console.warn(`Catatan Supabase (sensor_logs): ${logError.message}`);
     } else {
-      console.log(`💾 Tersimpan ke Supabase sensor_logs untuk ${nodeInfo.id}`);
+      console.log(`Tersimpan ke Supabase sensor_logs untuk ${nodeInfo.id}`);
     }
 
     // Perbarui tabel sensors
