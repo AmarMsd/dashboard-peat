@@ -26,9 +26,9 @@ console.log(`🗄️  Menghubungkan ke Database Supabase: ${SUPABASE_URL}`);
 
 // Sensor node metadata mapping
 const sensorNodes = {
-  1: { id: "PG-001", name: "Parongpong", region: "Bandung" },
-  2: { id: "PG-002", name: "Baleendah", region: "Bandung" },
-  3: { id: "PG-003", name: "Rancaupas", region: "Bandung" },
+  1: { id: "PG-001", name: "Parongpong", region: "Parongpong, Bandung Barat", lat: -6.8303, lng: 107.5867 },
+  2: { id: "PG-002", name: "Baleendah", region: "Baleendah, Kab. Bandung", lat: -6.9982, lng: 107.6324 },
+  3: { id: "PG-003", name: "Rancaupas", region: "Rancaupas, Ciwidey", lat: -7.1378, lng: 107.3912 },
 };
 
 // Current cached states
