@@ -38,6 +38,9 @@ const stateCache = {
   3: { moisture: 71.3, ph: 4.6, temp: 28.6 },
 };
 
+// Status terakhir tiap node (untuk mendeteksi perubahan status)
+const lastStatus = { 1: null, 2: null, 3: null };
+
 // Evaluasi status risiko saintifik
 function evaluateStatus(m, t, p) {
   if (m < 40.0 || t >= 35.0) return "critical";
@@ -179,14 +182,18 @@ client.on("message", async (topic, payload) => {
       .update(updateSensorsPayload)
       .eq("id", nodeInfo.id);
 
-    // Jika status bahaya/kritis, catat juga ke tabel notifications
-    if (status === "critical") {
+    // Catat ke tabel notifications HANYA saat status BERUBAH menjadi kritis,
+    // agar tabel tidak dibanjiri satu notifikasi per pesan MQTT.
+    const previousStatus = lastStatus[nodeNum];
+    lastStatus[nodeNum] = status;
+    if (status === "critical" && previousStatus !== "critical") {
       await supabase.from("notifications").insert([
         {
           sensor_id: nodeInfo.id,
           title: `BAHAYA: Kondisi Kritis di ${nodeInfo.name}`,
           message: reason,
           severity: "critical",
+          source: "sistem",
           is_read: false,
         },
       ]);

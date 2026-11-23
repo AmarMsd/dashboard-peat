@@ -122,3 +122,67 @@ export async function fetchNotificationsFromSupabase(limit = 20) {
     return null;
   }
 }
+
+/**
+ * Mengubah waktu menjadi teks relatif, mis. "5 menit lalu"
+ */
+export function formatRelativeTime(isoString) {
+  if (!isoString) return "";
+  const diffSec = Math.max(0, Math.round((Date.now() - new Date(isoString).getTime()) / 1000));
+  if (diffSec < 60) return "Baru saja";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} menit lalu`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour} jam lalu`;
+  return new Date(isoString).toLocaleString("id-ID", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/**
+ * Menyamakan bentuk baris tabel notifications Supabase dengan bentuk
+ * notifikasi yang dipakai komponen header dashboard.
+ */
+export function mapSupabaseNotification(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    message: row.message,
+    recommendation: row.recommendation || null,
+    type: row.severity || "info",
+    source: row.source || "sistem",
+    sensor_id: row.sensor_id,
+    created_at: row.created_at,
+    timestamp: formatRelativeTime(row.created_at),
+    is_read: Boolean(row.is_read),
+    url: row.sensor_id ? "/peringatan" : "/",
+    origin: "supabase",
+  };
+}
+
+/**
+ * Menandai satu notifikasi sebagai sudah dibaca di Supabase
+ */
+export async function markNotificationReadInSupabase(id) {
+  try {
+    const { error } = await supabase.from("notifications").update({ is_read: true }).eq("id", id);
+    if (error) console.warn("Gagal menandai notifikasi:", error.message);
+  } catch (err) {
+    console.warn("Supabase update notifikasi error:", err);
+  }
+}
+
+/**
+ * Menandai semua notifikasi yang belum dibaca sebagai sudah dibaca di Supabase
+ */
+export async function markAllNotificationsReadInSupabase() {
+  try {
+    const { error } = await supabase.from("notifications").update({ is_read: true }).eq("is_read", false);
+    if (error) console.warn("Gagal menandai semua notifikasi:", error.message);
+  } catch (err) {
+    console.warn("Supabase update notifikasi error:", err);
+  }
+}

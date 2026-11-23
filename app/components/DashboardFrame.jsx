@@ -1,11 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import { Footer } from "./Footer.jsx";
 import { Sidebar } from "./Sidebar.jsx";
+import { AgentChat } from "./AgentChat.jsx";
 import { useSensorData } from "../context/SensorContext";
+import {
+  supabase,
+  fetchNotificationsFromSupabase,
+  mapSupabaseNotification,
+  formatRelativeTime,
+  markNotificationReadInSupabase,
+  markAllNotificationsReadInSupabase,
+} from "../lib/supabase";
 
-const API_BASE = "http://127.0.0.1:8000/api";
-
-console.log("API_BASE:", API_BASE); 
+const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api";
 // Data cadangan lokal jika backend FastAPI belum dinyalakan
 const FALLBACK_NOTIFICATIONS = [
   {
@@ -57,37 +64,75 @@ export function DashboardFrame({ active, children }) {
 
   // Notification State
   const [notifications, setNotifications] = useState(FALLBACK_NOTIFICATIONS);
-  const [unreadCount, setUnreadCount] = useState(2);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const notifContainerRef = useRef(null);
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
-  // 1. Fetch Notifikasi dari Backend FastAPI (dengan fallback anggun)
+  // 1. Ambil notifikasi.
+  //    Sumber utama: tabel `notifications` Supabase (diisi bridge & agent n8n) + realtime.
+  //    Cadangan: backend FastAPI, lalu data lokal.
   useEffect(() => {
+    if (typeof window === "undefined") return;
     let isMounted = true;
-    async function fetchNotifs() {
+    let usingSupabase = false;
+
+    async function fetchFromFastApi() {
       try {
         const res = await fetch(`${API_BASE}/notifications`, { signal: AbortSignal.timeout(2000) });
         if (res.ok) {
           const data = await res.json();
           if (isMounted) {
-            setNotifications(data.notifications || []);
-            setUnreadCount(data.unread_count ?? 0);
+            setNotifications((data.notifications || []).map((n) => ({ ...n, origin: "fastapi" })));
           }
         }
       } catch (err) {
-        // Backend offline, gunakan fallback notifikasi lokal
-        if (isMounted) {
-          const unread = FALLBACK_NOTIFICATIONS.filter((n) => !n.is_read).length;
-          setUnreadCount(unread);
-        }
+        // Backend offline, tetap memakai notifikasi lokal
       }
     }
 
-    fetchNotifs();
-    const interval = setInterval(fetchNotifs, 10000); // Polling update berkala
+    async function loadNotifications() {
+      const rows = await fetchNotificationsFromSupabase(20);
+      if (!isMounted) return;
+      if (rows) {
+        usingSupabase = true;
+        setNotifications(rows.map(mapSupabaseNotification));
+      } else {
+        await fetchFromFastApi();
+      }
+    }
+
+    loadNotifications();
+
+    // Realtime: notifikasi baru (mis. dari agent n8n) langsung muncul tanpa reload
+    const channel = supabase
+      .channel("realtime-notifications")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload) => {
+        if (!payload.new) return;
+        const item = mapSupabaseNotification(payload.new);
+        setNotifications((prev) => [item, ...prev.filter((n) => n.id !== item.id)].slice(0, 20));
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications" }, (payload) => {
+        if (!payload.new) return;
+        const item = mapSupabaseNotification(payload.new);
+        setNotifications((prev) => prev.map((n) => (n.id === item.id ? item : n)));
+      })
+      .subscribe();
+
+    // Perbarui label waktu relatif & polling cadangan FastAPI
+    const interval = setInterval(() => {
+      if (usingSupabase) {
+        setNotifications((prev) =>
+          prev.map((n) => (n.created_at ? { ...n, timestamp: formatRelativeTime(n.created_at) } : n))
+        );
+      } else {
+        fetchFromFastApi();
+      }
+    }, 30000);
+
     return () => {
       isMounted = false;
       clearInterval(interval);
+      supabase.removeChannel(channel);
     };
   }, []);
 
@@ -184,14 +229,18 @@ export function DashboardFrame({ active, children }) {
 
   // Tandai notifikasi spesifik sebagai dibaca
   const markNotificationAsRead = async (id, targetUrl) => {
+    const target = notifications.find((n) => n.id === id);
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
     );
-    setUnreadCount((prev) => Math.max(0, prev - 1));
 
-    try {
-      await fetch(`${API_BASE}/notifications/${id}/read`, { method: "POST" });
-    } catch (e) {}
+    if (target?.origin === "supabase") {
+      await markNotificationReadInSupabase(id);
+    } else {
+      try {
+        await fetch(`${API_BASE}/notifications/${id}/read`, { method: "POST" });
+      } catch (e) {}
+    }
 
     setIsNotifOpen(false);
     if (targetUrl) {
@@ -201,11 +250,15 @@ export function DashboardFrame({ active, children }) {
 
   // Tandai semua notifikasi dibaca
   const markAllAsRead = async () => {
+    const fromSupabase = notifications.some((n) => n.origin === "supabase");
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    setUnreadCount(0);
-    try {
-      await fetch(`${API_BASE}/notifications/mark-all-read`, { method: "POST" });
-    } catch (e) {}
+    if (fromSupabase) {
+      await markAllNotificationsReadInSupabase();
+    } else {
+      try {
+        await fetch(`${API_BASE}/notifications/mark-all-read`, { method: "POST" });
+      } catch (e) {}
+    }
   };
 
   return (
@@ -404,8 +457,13 @@ export function DashboardFrame({ active, children }) {
                           </span>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-1">
-                              <h4 className="m-0 text-xs font-semibold text-gray-800 truncate">
-                                {n.title}
+                              <h4 className="m-0 flex min-w-0 items-center gap-1.5 text-xs font-semibold text-gray-800">
+                                {n.source === "agent" && (
+                                  <span className="shrink-0 rounded bg-violet-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-violet-700" title="Dibuat oleh AI Agent">
+                                    AI
+                                  </span>
+                                )}
+                                <span className="truncate">{n.title}</span>
                               </h4>
                               {!n.is_read && (
                                 <span className="size-1.5 rounded-full bg-blue-600 shrink-0" title="Belum dibaca"></span>
@@ -414,6 +472,12 @@ export function DashboardFrame({ active, children }) {
                             <p className="m-0 mt-0.5 text-xs text-gray-600 leading-snug line-clamp-2">
                               {n.message}
                             </p>
+                            {n.recommendation && (
+                              <p className="m-0 mt-1 rounded-md bg-gray-50 px-2 py-1 text-[11px] text-gray-600 leading-snug line-clamp-3">
+                                <span className="font-semibold text-gray-700">Saran: </span>
+                                {n.recommendation}
+                              </p>
+                            )}
                             <span className="mt-1 block text-[10px] text-gray-400">
                               {n.timestamp}
                             </span>
@@ -446,6 +510,8 @@ export function DashboardFrame({ active, children }) {
         {children}
         <Footer />
       </div>
+      <AgentChat />
+
     </div>
   );
 }

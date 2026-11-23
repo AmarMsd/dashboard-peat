@@ -50,6 +50,12 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON public.notifications (created_at DESC);
 
+-- Kolom tambahan untuk notifikasi dari AI Agent (n8n). Aman dijalankan ulang.
+--   source         : 'sistem' (bridge) atau 'agent' (AI Agent n8n)
+--   recommendation : saran tindakan dari agent
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'sistem';
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS recommendation TEXT;
+
 -- 4. Konfigurasi Keamanan Row Level Security (RLS) & Hak Akses
 ALTER TABLE public.sensors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sensor_logs ENABLE ROW LEVEL SECURITY;
