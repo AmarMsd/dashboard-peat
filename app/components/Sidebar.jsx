@@ -98,10 +98,10 @@ export function Sidebar({ active = "Dashboard" }) {
             return (
               <li key={label}>
                 <a
-                  className={`cursor-pointer flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors no-underline max-[640px]:justify-center max-[640px]:px-0 max-[640px]:size-10 ${
+                  className={`cursor-pointer flex items-center gap-2.5 rounded-md px-3 py-2 text-[13px] font-medium transition-colors no-underline max-[640px]:justify-center max-[640px]:px-0 max-[640px]:size-9 ${
                     isActive
-                      ? "bg-[#2563eb] text-white"
-                      : "text-[#94a3b8] hover:bg-white/10 hover:text-white"
+                      ? "bg-[#2563eb] text-white shadow-2xs font-semibold"
+                      : "text-slate-300 hover:bg-white/10 hover:text-white"
                   }`}
                   href={href}
                   aria-current={isActive ? "page" : undefined}
@@ -116,9 +116,9 @@ export function Sidebar({ active = "Dashboard" }) {
       </nav>
 
       {/* Bottom help */}
-      <div className="mt-auto px-2 max-[640px]:px-0">
+      <div className="mt-auto px-1.5 max-[640px]:px-0">
         <button
-          className="cursor-pointer flex w-full items-center gap-3 rounded-lg px-1 py-2 text-sm text-[#94a3b8] transition-colors hover:text-white max-[640px]:justify-center"
+          className="cursor-pointer flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-xs text-slate-400 transition-colors hover:text-white max-[640px]:justify-center"
           type="button"
           aria-label="Bantuan"
           title="Bantuan"
@@ -126,13 +126,13 @@ export function Sidebar({ active = "Dashboard" }) {
           <IconHelp />
           <span className="max-[640px]:hidden text-xs">Bantuan</span>
         </button>
-        <div className="mt-3 flex items-center gap-2 rounded-lg px-1 py-2 max-[640px]:justify-center">
-          <span className="grid size-7 shrink-0 place-items-center rounded-full bg-[#2563eb] text-xs font-semibold text-white">
+        <div className="mt-2.5 flex items-center gap-2 rounded-md bg-white/5 p-2 max-[640px]:justify-center">
+          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-[#2563eb] text-xs font-bold text-white">
             AM
           </span>
           <span className="min-w-0 max-[640px]:hidden">
-            <p className="m-0 truncate text-xs font-medium text-white">Admin</p>
-            <p className="m-0 truncate text-[10px] text-[#94a3b8]">PeatGuard</p>
+            <p className="m-0 truncate text-xs font-semibold text-white">Admin</p>
+            <p className="m-0 truncate text-[10px] text-slate-400">PeatGuard</p>
           </span>
         </div>
       </div>

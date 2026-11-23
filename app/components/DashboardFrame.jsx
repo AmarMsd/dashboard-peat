@@ -209,51 +209,22 @@ export function DashboardFrame({ active, children }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f0f2f7]">
+    <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar active={active} />
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Header with z-50 to stay above page content */}
-        <header className="relative flex h-16 items-center gap-3 border-b border-gray-200 bg-white px-5 shadow-sm lg:px-7 z-50">
+        <header className="relative flex h-14 items-center gap-3 border-b border-slate-200/90 bg-white px-5 shadow-2xs lg:px-7 z-50">
           {/* Breadcrumb */}
-          <div className="flex items-center gap-1.5 text-sm text-gray-400">
+          <div className="flex items-center gap-1.5 text-xs text-slate-400">
             <span>PeatGuard</span>
             <span>/</span>
-            <span className="font-medium text-gray-700">{active}</span>
+            <span className="font-semibold text-slate-800">{active}</span>
           </div>
-
-          {/* Realtime Live Status Badge */}
-          {/* <div className="ml-2 hidden sm:flex items-center">
-            {connectionStatus === "connected" && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 border border-emerald-200/60">
-                <span className="relative flex size-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
-                </span>
-                Live MQTT (wss)
-              </span>
-            )}
-            {connectionStatus === "connecting" && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 border border-amber-200/60">
-                <span className="size-2 rounded-full bg-amber-400 animate-pulse"></span>
-                Menghubungkan Sensor...
-              </span>
-            )}
-            {(connectionStatus === "error" || connectionStatus === "disconnected") && (
-              <button
-                onClick={refreshConnection}
-                className="cursor-pointer inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-200 border border-gray-200 transition-colors"
-                title="Klik untuk menyambung ulang"
-              >
-                <span className="size-2 rounded-full bg-gray-400"></span>
-                Mode Offline · Sambung Ulang
-              </button>
-            )}
-          </div> */}
 
           {/* Search Bar with Autocomplete Dropdown */}
           <div ref={searchContainerRef} className="relative ml-auto w-full max-w-xs">
-            <div className="flex h-9 items-center gap-2 rounded-lg bg-gray-100 px-3 text-sm text-gray-600 focus-within:ring-2 focus-within:ring-blue-500/30 focus-within:bg-white border border-transparent focus-within:border-blue-500 transition-all">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <div className="flex h-8.5 items-center gap-2 rounded-md bg-slate-100/80 px-2.5 text-xs text-slate-600 focus-within:ring-1 focus-within:ring-blue-500 focus-within:bg-white border border-slate-200/60 focus-within:border-blue-500 transition-all">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
               <input
@@ -264,7 +235,7 @@ export function DashboardFrame({ active, children }) {
                   setIsSearchOpen(true);
                 }}
                 onFocus={() => setIsSearchOpen(true)}
-                className="min-w-0 flex-1 bg-transparent text-gray-700 outline-none placeholder:text-gray-400 text-xs sm:text-sm"
+                className="min-w-0 flex-1 bg-transparent text-slate-800 outline-none placeholder:text-slate-400 text-xs"
                 placeholder="Cari titik sensor atau menu..."
                 aria-label="Cari titik sensor"
               />
@@ -272,7 +243,7 @@ export function DashboardFrame({ active, children }) {
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="cursor-pointer text-gray-400 hover:text-gray-600 text-xs p-1"
+                  className="cursor-pointer text-slate-400 hover:text-slate-600 text-xs p-1"
                 >
                   ✕
                 </button>
@@ -281,45 +252,45 @@ export function DashboardFrame({ active, children }) {
 
             {/* Search Dropdown Popup */}
             {isSearchOpen && searchQuery.trim() && (
-              <div className="absolute left-0 right-0 top-11 mt-1 rounded-xl border border-gray-200 bg-white p-2 shadow-xl z-60 max-h-80 overflow-y-auto">
-                <div className="px-2 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+              <div className="absolute left-0 right-0 top-10 mt-1 rounded-lg border border-slate-200 bg-white p-1.5 shadow-xl z-60 max-h-80 overflow-y-auto">
+                <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   Hasil Pencarian ({searchResults.length})
                 </div>
                 {searchResults.length === 0 ? (
-                  <div className="px-3 py-4 text-center text-xs text-gray-400">
+                  <div className="px-3 py-4 text-center text-xs text-slate-400">
                     Tidak ditemukan hasil untuk "{searchQuery}"
                   </div>
                 ) : (
-                  <div className="space-y-1">
+                  <div className="space-y-0.5">
                     {searchResults.map((item) => (
                       <a
                         key={item.id}
                         href={item.url}
                         onClick={() => setIsSearchOpen(false)}
-                        className="cursor-pointer flex items-center justify-between gap-2 rounded-lg p-2 hover:bg-blue-50/70 transition-colors no-underline group"
+                        className="cursor-pointer flex items-center justify-between gap-2 rounded-md p-2 hover:bg-slate-50 transition-colors no-underline group"
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
-                            <span className="truncate text-xs font-semibold text-gray-800 group-hover:text-blue-600">
+                            <span className="truncate text-xs font-semibold text-slate-800 group-hover:text-blue-600">
                               {item.title}
                             </span>
                             <span className={`rounded px-1.5 py-0.2 text-[9px] uppercase font-bold ${
-                              item.category === "sensor" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
+                              item.category === "sensor" ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"
                             }`}>
                               {item.category}
                             </span>
                           </div>
-                          <p className="m-0 truncate text-[11px] text-gray-500">
+                          <p className="m-0 truncate text-[11px] text-slate-500">
                             {item.subtitle}
                           </p>
                         </div>
                         {item.status && (
-                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                          <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-semibold border ${
                             item.status === "normal"
-                              ? "bg-green-100 text-green-700"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                               : item.status === "warning"
-                              ? "bg-amber-100 text-amber-700"
-                              : "bg-red-100 text-red-700"
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                              : "bg-rose-50 text-rose-700 border-rose-200"
                           }`}>
                             {item.status}
                           </span>
@@ -336,31 +307,31 @@ export function DashboardFrame({ active, children }) {
           <div ref={notifContainerRef} className="relative">
             <button
               onClick={() => setIsNotifOpen((prev) => !prev)}
-              className="cursor-pointer relative grid size-9 place-items-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+              className="cursor-pointer relative grid size-8.5 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
               type="button"
               aria-label="Notifikasi"
               title="Notifikasi Lahan"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                 <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
               </svg>
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 flex size-2.5">
+                <span className="absolute top-1.5 right-1.5 flex size-2">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex size-2.5 rounded-full bg-red-500 border-2 border-white"></span>
+                  <span className="relative inline-flex size-2 rounded-full bg-red-500 border-2 border-white"></span>
                 </span>
               )}
             </button>
 
             {/* Notification Popover */}
             {isNotifOpen && (
-              <div className="absolute right-0 top-11 mt-1 w-80 sm:w-96 rounded-2xl border border-gray-200 bg-white shadow-2xl z-60 overflow-hidden">
-                <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 bg-gray-50/70">
+              <div className="absolute right-0 top-10 mt-1 w-80 sm:w-96 rounded-lg border border-slate-200 bg-white shadow-xl z-60 overflow-hidden">
+                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2.5 bg-slate-50/80">
                   <div className="flex items-center gap-2">
-                    <h3 className="m-0 text-sm font-semibold text-gray-800">Notifikasi Lahan</h3>
+                    <h3 className="m-0 text-xs font-bold text-slate-800">Notifikasi Lahan</h3>
                     {unreadCount > 0 && (
-                      <span className="rounded-full bg-red-100 px-2 py-0.2 text-[10px] font-bold text-red-600">
+                      <span className="rounded-md border border-rose-200 bg-rose-50 px-1.5 py-0.2 text-[10px] font-bold text-rose-600">
                         {unreadCount} baru
                       </span>
                     )}
@@ -368,53 +339,53 @@ export function DashboardFrame({ active, children }) {
                   {unreadCount > 0 && (
                     <button
                       onClick={markAllAsRead}
-                      className="cursor-pointer text-[11px] font-medium text-blue-600 hover:text-blue-800 transition"
+                      className="cursor-pointer text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition"
                     >
                       Tandai semua dibaca
                     </button>
                   )}
                 </div>
 
-                <div className="max-h-84 overflow-y-auto divide-y divide-gray-100">
+                <div className="max-h-84 overflow-y-auto divide-y divide-slate-100">
                   {notifications.length === 0 ? (
-                    <div className="p-6 text-center text-xs text-gray-400">
+                    <div className="p-6 text-center text-xs text-slate-400">
                       Tidak ada notifikasi saat ini
                     </div>
                   ) : (
                     notifications.map((n) => {
                       const iconBg =
                         n.type === "critical"
-                          ? "bg-red-100 text-red-600"
+                          ? "bg-rose-50 text-rose-600 border border-rose-200"
                           : n.type === "warning"
-                          ? "bg-amber-100 text-amber-600"
+                          ? "bg-amber-50 text-amber-600 border border-amber-200"
                           : n.type === "success"
-                          ? "bg-emerald-100 text-emerald-600"
-                          : "bg-blue-100 text-blue-600";
+                          ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                          : "bg-blue-50 text-blue-600 border border-blue-200";
 
                       return (
                         <div
                           key={n.id}
                           onClick={() => markNotificationAsRead(n.id, n.url)}
-                          className={`cursor-pointer flex items-start gap-3 p-3.5 transition-colors ${
-                            !n.is_read ? "bg-blue-50/30 hover:bg-blue-50/70" : "hover:bg-gray-50"
+                          className={`cursor-pointer flex items-start gap-3 p-3 transition-colors ${
+                            !n.is_read ? "bg-blue-50/30 hover:bg-blue-50/60" : "hover:bg-slate-50"
                           }`}
                         >
-                          <span className={`grid size-7 shrink-0 place-items-center rounded-full text-xs font-bold ${iconBg}`}>
+                          <span className={`grid size-6.5 shrink-0 place-items-center rounded-md text-[11px] font-bold ${iconBg}`}>
                             {n.type === "critical" ? "!" : n.type === "warning" ? "⚠" : n.type === "success" ? "✓" : "ℹ"}
                           </span>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-1">
-                              <h4 className="m-0 text-xs font-semibold text-gray-800 truncate">
+                              <h4 className="m-0 text-xs font-semibold text-slate-800 truncate">
                                 {n.title}
                               </h4>
                               {!n.is_read && (
                                 <span className="size-1.5 rounded-full bg-blue-600 shrink-0" title="Belum dibaca"></span>
                               )}
                             </div>
-                            <p className="m-0 mt-0.5 text-xs text-gray-600 leading-snug line-clamp-2">
+                            <p className="m-0 mt-0.5 text-xs text-slate-600 leading-snug line-clamp-2">
                               {n.message}
                             </p>
-                            <span className="mt-1 block text-[10px] text-gray-400">
+                            <span className="mt-1 block text-[10px] text-slate-400">
                               {n.timestamp}
                             </span>
                           </div>
@@ -424,11 +395,11 @@ export function DashboardFrame({ active, children }) {
                   )}
                 </div>
 
-                <div className="border-t border-gray-100 p-2.5 text-center bg-gray-50/50">
+                <div className="border-t border-slate-100 p-2 text-center bg-slate-50/60">
                   <a
                     href="/peringatan"
                     onClick={() => setIsNotifOpen(false)}
-                    className="cursor-pointer text-xs font-medium text-blue-600 hover:underline"
+                    className="cursor-pointer text-xs font-semibold text-blue-600 hover:underline"
                   >
                     Lihat Semua Status Peringatan Lahan →
                   </a>
@@ -438,7 +409,7 @@ export function DashboardFrame({ active, children }) {
           </div>
 
           {/* Avatar */}
-          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#2563eb] text-xs font-semibold text-white shadow-2xs">
+          <span className="grid size-8 shrink-0 place-items-center rounded-md bg-[#2563eb] text-xs font-bold text-white shadow-2xs">
             AM
           </span>
         </header>

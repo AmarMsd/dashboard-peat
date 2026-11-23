@@ -110,11 +110,11 @@ export function DataTable({
   }, [totalPages, validCurrentPage]);
 
   return (
-    <div className="w-full text-gray-800">
+    <div className="w-full text-slate-800">
       {/* DataTables Top Toolbar: Length Menu & Search Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 border-b border-gray-100 bg-white">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4.5 py-3 border-b border-slate-200/80 bg-white">
         {/* Page Size Selector */}
-        <div className="flex items-center gap-2 text-xs text-gray-600">
+        <div className="flex items-center gap-2 text-xs text-slate-600">
           <span>Tampilkan</span>
           <select
             value={pageSize}
@@ -122,7 +122,7 @@ export function DataTable({
               setPageSize(Number(e.target.value));
               setCurrentPage(1);
             }}
-            className="cursor-pointer rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-2xs hover:border-gray-400 focus:border-blue-500 focus:outline-none transition-colors"
+            className="cursor-pointer rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-400 focus:border-blue-500 focus:outline-none transition-colors"
           >
             {pageSizeOptions.map((opt) => (
               <option key={opt} value={opt} className="cursor-pointer">
@@ -134,8 +134,8 @@ export function DataTable({
         </div>
 
         {/* Live Search Input */}
-        <div className="flex items-center gap-2 text-xs text-gray-600">
-          <label htmlFor="dt-search" className="font-medium text-gray-700">
+        <div className="flex items-center gap-2 text-xs text-slate-600">
+          <label htmlFor="dt-search" className="font-semibold text-slate-700">
             Cari:
           </label>
           <div className="relative">
@@ -148,10 +148,10 @@ export function DataTable({
                 setCurrentPage(1);
               }}
               placeholder={searchPlaceholder}
-              className="w-48 sm:w-60 rounded-md border border-gray-300 bg-white px-3 py-1.5 pl-8 text-xs text-gray-700 shadow-2xs placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition"
+              className="w-48 sm:w-60 rounded-md border border-slate-300 bg-white px-3 py-1.5 pl-8 text-xs text-slate-800 shadow-2xs placeholder:text-slate-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition"
             />
             <svg
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
               width="13"
               height="13"
               viewBox="0 0 24 24"
@@ -168,7 +168,7 @@ export function DataTable({
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="cursor-pointer absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 rounded"
+                className="cursor-pointer absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded"
                 title="Hapus pencarian"
               >
                 ✕
@@ -181,7 +181,7 @@ export function DataTable({
       {/* Main Table */}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[700px] text-left text-sm border-collapse">
-          <thead className="bg-[#f8fafc] text-xs font-semibold text-gray-600 border-b border-gray-200 uppercase tracking-wider">
+          <thead className="bg-slate-50 text-[11px] font-bold text-slate-600 border-b border-slate-200 uppercase tracking-wider">
             <tr>
               {columns.map((col) => {
                 const isSorted = sortConfig.key === col.key;
@@ -191,8 +191,8 @@ export function DataTable({
                   <th
                     key={col.key}
                     onClick={() => isSortable && handleSort(col.key, isSortable)}
-                    className={`px-5 py-3.5 select-none ${
-                      isSortable ? "cursor-pointer hover:bg-gray-100/90 transition-colors" : ""
+                    className={`px-4.5 py-3 select-none ${
+                      isSortable ? "cursor-pointer hover:bg-slate-100 transition-colors" : ""
                     } ${col.headerAlign === "right" ? "text-right" : col.headerAlign === "center" ? "text-center" : "text-left"}`}
                   >
                     <div
@@ -202,7 +202,7 @@ export function DataTable({
                     >
                       <span className={isSortable ? "cursor-pointer" : ""}>{col.label}</span>
                       {isSortable && (
-                        <span className="cursor-pointer inline-flex flex-col text-[10px] leading-[8px] text-gray-400">
+                        <span className="cursor-pointer inline-flex flex-col text-[10px] leading-[8px] text-slate-400">
                           {isSorted ? (
                             sortConfig.direction === "asc" ? (
                               <span className="text-blue-600 font-bold">▲</span>
@@ -220,10 +220,10 @@ export function DataTable({
               })}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 bg-white text-gray-700">
+          <tbody className="divide-y divide-slate-100 bg-white text-slate-700">
             {paginatedData.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-5 py-10 text-center text-sm text-gray-400">
+                <td colSpan={columns.length} className="px-5 py-10 text-center text-xs text-slate-400">
                   {emptyMessage}
                 </td>
               </tr>
@@ -236,7 +236,7 @@ export function DataTable({
                   {columns.map((col) => (
                     <td
                       key={col.key}
-                      className={`px-5 py-3.5 text-xs ${
+                      className={`px-4.5 py-3 text-xs ${
                         col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : "text-left"
                       }`}
                     >
@@ -251,18 +251,18 @@ export function DataTable({
       </div>
 
       {/* DataTables Bottom Toolbar: Info & Pagination */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-3.5 border-t border-gray-200 bg-[#f8fafc]/60">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4.5 py-3 border-t border-slate-200/80 bg-slate-50/60">
         {/* Info text */}
-        <p className="m-0 text-xs text-gray-500">
+        <p className="m-0 text-xs text-slate-500">
           {totalEntries === 0 ? (
             "Menampilkan 0 entri"
           ) : (
             <>
-              Menampilkan <span className="font-medium text-gray-800">{startIndex + 1}</span> sampai{" "}
-              <span className="font-medium text-gray-800">{Math.min(startIndex + pageSize, totalEntries)}</span> dari{" "}
-              <span className="font-medium text-gray-800">{totalEntries}</span> entri
+              Menampilkan <span className="font-semibold text-slate-800">{startIndex + 1}</span> sampai{" "}
+              <span className="font-semibold text-slate-800">{Math.min(startIndex + pageSize, totalEntries)}</span> dari{" "}
+              <span className="font-semibold text-slate-800">{totalEntries}</span> entri
               {searchQuery && data.length !== totalEntries && (
-                <span className="text-gray-400"> (disaring dari {data.length} total entri)</span>
+                <span className="text-slate-400"> (disaring dari {data.length} total entri)</span>
               )}
             </>
           )}
@@ -275,7 +275,7 @@ export function DataTable({
             type="button"
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={validCurrentPage === 1}
-            className="cursor-pointer disabled:cursor-not-allowed rounded border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition"
+            className="cursor-pointer disabled:cursor-not-allowed rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition"
           >
             Sebelumnya
           </button>
@@ -284,7 +284,7 @@ export function DataTable({
           {paginationRange.map((pageNumber, idx) => {
             if (pageNumber === "...") {
               return (
-                <span key={`dots-${idx}`} className="px-2 py-1 text-xs text-gray-400 select-none">
+                <span key={`dots-${idx}`} className="px-1.5 py-1 text-xs text-slate-400 select-none">
                   ...
                 </span>
               );
@@ -296,10 +296,10 @@ export function DataTable({
                 key={pageNumber}
                 type="button"
                 onClick={() => setCurrentPage(pageNumber)}
-                className={`cursor-pointer min-w-[28px] rounded px-2 py-1 text-xs font-medium transition ${
+                className={`cursor-pointer min-w-[28px] rounded-md px-2 py-1 text-xs font-semibold transition ${
                   isActive
-                    ? "bg-[#2563eb] text-white border border-[#2563eb] shadow-2xs font-semibold"
-                    : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                    ? "bg-[#2563eb] text-white border border-[#2563eb] shadow-2xs"
+                    : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                 }`}
               >
                 {pageNumber}
@@ -312,7 +312,7 @@ export function DataTable({
             type="button"
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={validCurrentPage === totalPages || totalEntries === 0}
-            className="cursor-pointer disabled:cursor-not-allowed rounded border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition"
+            className="cursor-pointer disabled:cursor-not-allowed rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 transition"
           >
             Selanjutnya
           </button>
