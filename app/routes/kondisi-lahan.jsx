@@ -71,8 +71,8 @@ export default function LandConditionPage() {
       headerAlign: "center",
       render: (val) => (
         <span
-          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
-            statusBadge[val] || "bg-gray-100 text-gray-600"
+          className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold ${
+            statusBadge[val] || "bg-slate-100 text-slate-600 border-slate-200"
           }`}
         >
           {statusLabels[val] || val}
@@ -83,25 +83,25 @@ export default function LandConditionPage() {
 
   return (
     <DashboardFrame active="Kondisi Lahan">
-      <main className="min-w-0 flex-1 p-5 lg:p-7">
+      <main className="min-w-0 flex-1 p-4.5 sm:p-6 lg:p-7">
         {/* Title */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="m-0 text-xl font-semibold text-gray-800">Kondisi Fisik & Kimia Lahan Gambut</h1>
-            <p className="m-0 mt-1 text-sm text-gray-500">
+            <h1 className="m-0 text-lg sm:text-xl font-bold tracking-tight text-slate-900">Kondisi Fisik & Kimia Lahan Gambut</h1>
+            <p className="m-0 mt-0.5 text-xs text-slate-500">
               Parameter realtime kelembapan, derajat keasaman (pH), dan suhu dari setiap stasiun sensor
             </p>
           </div>
           <a
             href="/riwayat"
-            className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-2xs hover:bg-gray-50 transition-colors"
+            className="cursor-pointer inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
           >
             Lihat Grafik Riwayat →
           </a>
         </div>
 
         {/* Stat cards */}
-        <div className="mb-6 grid gap-4 lg:grid-cols-3">
+        <div className="mb-5 grid gap-3.5 lg:grid-cols-3">
           {readings.map((reading) => {
             const average =
               Math.round(
@@ -109,16 +109,16 @@ export default function LandConditionPage() {
               ) / 10;
             return (
               <article
-                className={`rounded-xl border-l-4 ${reading.borderColor} bg-white p-5 shadow-sm`}
+                className={`rounded-lg border border-slate-200/90 border-l-[3px] ${reading.borderColor} bg-white p-4 shadow-2xs`}
                 key={reading.key}
               >
-                <p className="m-0 text-xs text-gray-500">{reading.label}</p>
-                <p className="m-0 mt-3 text-4xl font-bold text-gray-800">
+                <p className="m-0 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{reading.label}</p>
+                <p className="m-0 mt-1.5 text-2xl sm:text-[28px] font-bold tracking-tight text-slate-900">
                   {average}
-                  <span className="text-xl font-normal text-gray-500">{reading.unit}</span>
+                  <span className="text-base font-normal text-slate-500 ml-1">{reading.unit}</span>
                 </p>
-                <p className="m-0 mt-1 text-xs text-gray-400">Rata-rata dari {sensors.length} titik pantau</p>
-                <p className="m-0 mt-4 border-t border-gray-100 pt-3 text-xs leading-5 text-gray-500">
+                <p className="m-0 mt-0.5 text-[11px] font-medium text-slate-400">Rata-rata dari {sensors.length} titik pantau</p>
+                <p className="m-0 mt-3 border-t border-slate-100 pt-2.5 text-xs leading-relaxed text-slate-500">
                   {reading.description}
                 </p>
               </article>
@@ -127,13 +127,13 @@ export default function LandConditionPage() {
         </div>
 
         {/* Table Section using DataTable */}
-        <section className="overflow-hidden rounded-xl bg-white shadow-sm border border-gray-200">
-          <div className="border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+        <section className="overflow-hidden rounded-lg border border-slate-200/90 bg-white shadow-2xs">
+          <div className="border-b border-slate-200/80 px-4.5 py-3 flex items-center justify-between bg-slate-50/50">
             <div>
-              <h2 className="m-0 text-sm font-semibold text-gray-800">Tabel Rincian Tiap Titik Pemantauan</h2>
-              <p className="m-0 mt-0.5 text-xs text-gray-500">Tabel data dilengkapi pencarian instan dan pengurutan kolom</p>
+              <h2 className="m-0 text-sm font-bold tracking-tight text-slate-900">Tabel Rincian Tiap Titik Pemantauan</h2>
+              <p className="m-0 mt-0.5 text-xs text-slate-500">Tabel data dilengkapi pencarian instan dan pengurutan kolom</p>
             </div>
-            <span className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full font-medium">
+            <span className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md font-semibold">
               Realtime Sync
             </span>
           </div>

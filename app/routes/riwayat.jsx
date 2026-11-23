@@ -168,8 +168,8 @@ export default function RiwayatPage() {
         return (
           <span
             title={tooltip}
-            className={`cursor-help inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
-              statusBadge[val] || "bg-gray-100 text-gray-700 border-gray-200"
+            className={`cursor-help inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold ${
+              statusBadge[val] || "bg-slate-100 text-slate-700 border-slate-200"
             }`}
           >
             {statusLabel[val] || val}
@@ -181,21 +181,21 @@ export default function RiwayatPage() {
 
   return (
     <DashboardFrame active="Riwayat Data">
-      <main className="min-w-0 flex-1 p-5 lg:p-7">
+      <main className="min-w-0 flex-1 p-4.5 sm:p-6 lg:p-7">
         {/* Header & Export button */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="m-0 text-xl font-semibold text-gray-800">Riwayat Data & Tren Sensor</h1>
-            <p className="m-0 mt-1 text-sm text-gray-500">
+            <h1 className="m-0 text-lg sm:text-xl font-bold tracking-tight text-slate-900">Riwayat Data & Tren Sensor</h1>
+            <p className="m-0 mt-0.5 text-xs sm:text-[13px] text-slate-500">
               Rekaman historis data kelembapan tanah, pH, dan suhu dari transmisi alat pemantau pencegahan kebakaran gambut.
             </p>
           </div>
           <button
             onClick={exportHistoryCSV}
             type="button"
-            className="cursor-pointer inline-flex items-center gap-2 rounded-lg bg-[#2563eb] px-4 py-2.5 text-xs font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
+            className="cursor-pointer inline-flex items-center gap-2 rounded-md bg-[#2563eb] px-3.5 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-blue-700 active:bg-blue-800 transition-colors"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
@@ -205,37 +205,39 @@ export default function RiwayatPage() {
         </div>
 
         {/* KPI Summary Cards */}
-        <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-          <div className="rounded-xl border-l-4 border-blue-600 bg-white p-4 shadow-sm">
-            <p className="m-0 text-xs text-gray-500">Total Log Tercatat</p>
-            <p className="m-0 mt-2 text-2xl font-bold text-gray-800">{stats.total}</p>
-            <p className="m-0 mt-1 text-xs text-blue-600">pembacaan tersimpan</p>
+        <div className="mb-5 grid grid-cols-2 gap-3.5 md:grid-cols-4">
+          <div className="rounded-lg border border-slate-200/90 border-l-[3px] border-l-blue-600 bg-white p-3.5 sm:p-4 shadow-2xs">
+            <p className="m-0 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Total Log Tercatat</p>
+            <p className="m-0 mt-1.5 text-2xl font-bold tracking-tight text-slate-900">{stats.total}</p>
+            <p className="m-0 mt-0.5 text-[11px] font-medium text-blue-600">pembacaan tersimpan</p>
           </div>
-          <div className="rounded-xl border-l-4 border-emerald-600 bg-white p-4 shadow-sm">
-            <p className="m-0 text-xs text-gray-500">Rata-rata Kelembapan</p>
-            <p className="m-0 mt-2 text-2xl font-bold text-gray-800">{stats.avgMoisture}%</p>
-            <p className="m-0 mt-1 text-xs text-emerald-600">kondisi agregat lahan</p>
+          <div className="rounded-lg border border-slate-200/90 border-l-[3px] border-l-emerald-600 bg-white p-3.5 sm:p-4 shadow-2xs">
+            <p className="m-0 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Rata-rata Kelembapan</p>
+            <p className="m-0 mt-1.5 text-2xl font-bold tracking-tight text-slate-900">{stats.avgMoisture}%</p>
+            <p className="m-0 mt-0.5 text-[11px] font-medium text-emerald-600">kondisi agregat lahan</p>
           </div>
-          <div className="rounded-xl border-l-4 border-teal-600 bg-white p-4 shadow-sm">
-            <p className="m-0 text-xs text-gray-500">Rata-rata pH Tanah</p>
-            <p className="m-0 mt-2 text-2xl font-bold text-gray-800">{stats.avgPh}</p>
-            <p className="m-0 mt-1 text-xs text-teal-600">keasaman alami gambut</p>
+          <div className="rounded-lg border border-slate-200/90 border-l-[3px] border-l-teal-600 bg-white p-3.5 sm:p-4 shadow-2xs">
+            <p className="m-0 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Rata-rata pH Tanah</p>
+            <p className="m-0 mt-1.5 text-2xl font-bold tracking-tight text-slate-900">{stats.avgPh}</p>
+            <p className="m-0 mt-0.5 text-[11px] font-medium text-teal-600">keasaman alami gambut</p>
           </div>
-          <div className="rounded-xl border-l-4 border-amber-500 bg-white p-4 shadow-sm">
-            <p className="m-0 text-xs text-gray-500">Rata-rata Suhu Tanah</p>
-            <p className="m-0 mt-2 text-2xl font-bold text-gray-800">{stats.avgTemp}°C</p>
-            <p className="m-0 mt-1 text-xs text-amber-600">{stats.alertCount} status perhatian</p>
+          <div className="rounded-lg border border-slate-200/90 border-l-[3px] border-l-amber-500 bg-white p-3.5 sm:p-4 shadow-2xs">
+            <p className="m-0 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Rata-rata Suhu Tanah</p>
+            <p className="m-0 mt-1.5 text-2xl font-bold tracking-tight text-slate-900">{stats.avgTemp}°C</p>
+            <p className="m-0 mt-0.5 text-[11px] font-medium text-amber-600">{stats.alertCount} status perhatian</p>
           </div>
         </div>
 
         {/* Filter Bar */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-3 shadow-sm border border-gray-100">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-gray-500">Titik Pantau:</span>
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200/90 bg-white p-3 shadow-2xs">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mr-1">Titik Pantau:</span>
             <button
               onClick={() => setSelectedNode("all")}
-              className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                selectedNode === "all" ? "bg-[#2563eb] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              className={`cursor-pointer rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                selectedNode === "all"
+                  ? "bg-[#2563eb] text-white shadow-2xs"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200/80"
               }`}
             >
               Semua Titik (1, 2, 3)
@@ -244,8 +246,10 @@ export default function RiwayatPage() {
               <button
                 key={s.id}
                 onClick={() => setSelectedNode(s.id)}
-                className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                  selectedNode === s.id ? "bg-[#2563eb] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                className={`cursor-pointer rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                  selectedNode === s.id
+                    ? "bg-[#2563eb] text-white shadow-2xs"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200/80"
                 }`}
               >
                 {s.name.split("-")[0]}
@@ -253,8 +257,8 @@ export default function RiwayatPage() {
             ))}
           </div>
 
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-gray-500">Parameter:</span>
+          <div className="flex items-center gap-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mr-1">Parameter:</span>
             {[
               { id: "moisture", label: "Kelembapan" },
               { id: "ph", label: "pH Tanah" },
@@ -263,8 +267,10 @@ export default function RiwayatPage() {
               <button
                 key={m.id}
                 onClick={() => setSelectedMetric(m.id)}
-                className={`cursor-pointer rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
-                  selectedMetric === m.id ? "bg-gray-800 text-white" : "text-gray-600 hover:bg-gray-100"
+                className={`cursor-pointer rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+                  selectedMetric === m.id
+                    ? "bg-slate-900 text-white shadow-2xs"
+                    : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
                 {m.label}
@@ -274,13 +280,13 @@ export default function RiwayatPage() {
         </div>
 
         {/* Historical Trend Chart */}
-        <section className="mb-6 rounded-xl bg-white p-5 shadow-sm border border-gray-100">
-          <div className="mb-4 flex items-center justify-between">
+        <section className="mb-5 rounded-lg border border-slate-200/90 bg-white p-4.5 sm:p-5 shadow-2xs">
+          <div className="mb-3.5 flex items-center justify-between">
             <div>
-              <h2 className="m-0 text-sm font-semibold text-gray-800">
+              <h2 className="m-0 text-sm font-bold tracking-tight text-slate-900">
                 Grafik Tren Historis · {metricConfig[selectedMetric].label}
               </h2>
-              <p className="m-0 mt-0.5 text-xs text-gray-500">
+              <p className="m-0 mt-0.5 text-xs text-slate-500">
                 Visualisasi dinamika pembacaan sensor waktu ke waktu (25 data terakhir)
               </p>
             </div>
@@ -372,10 +378,10 @@ export default function RiwayatPage() {
         </section>
 
         {/* DataTables Section */}
-        <section className="overflow-hidden rounded-xl bg-white shadow-sm border border-gray-200">
-          <div className="border-b border-gray-100 px-5 py-4">
-            <h2 className="m-0 text-sm font-semibold text-gray-800">Log Catatan Sensor Realtime (DataTables)</h2>
-            <p className="m-0 mt-0.5 text-xs text-gray-500">
+        <section className="overflow-hidden rounded-lg border border-slate-200/90 bg-white shadow-2xs">
+          <div className="border-b border-slate-200/80 px-5 py-3.5 bg-slate-50/50">
+            <h2 className="m-0 text-sm font-bold tracking-tight text-slate-900">Log Catatan Sensor Realtime</h2>
+            <p className="m-0 mt-0.5 text-xs text-slate-500">
               Pencatatan runtun waktu (audit trail) dari setiap paket transmisi. Arahkan kursor ke badge status untuk melihat keterangan ilmiah kondisi gambut.
             </p>
           </div>
@@ -388,7 +394,11 @@ export default function RiwayatPage() {
             defaultSortDir="desc"
             pageSizeOptions={[10, 25, 50, 100]}
             initialPageSize={10}
-            emptyMessage="Tidak ada catatan riwayat yang cocok dengan pencarian atau filter."
+            emptyMessage={
+              historicalRecords.length === 0
+                ? "Belum ada rekaman sensor di Supabase. Menunggu paket data telemetri pertama..."
+                : "Tidak ada catatan riwayat yang cocok dengan pencarian atau filter."
+            }
           />
         </section>
       </main>

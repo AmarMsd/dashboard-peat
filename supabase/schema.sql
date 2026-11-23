@@ -86,9 +86,9 @@ CREATE POLICY "Allow public update for notifications" ON public.notifications FO
 -- 5. Masukkan Data Awal (Seed) 3 Titik Pantau dengan Koordinat Nyata
 INSERT INTO public.sensors (id, name, region, latitude, longitude, last_moisture, last_ph, last_temperature, status)
 VALUES 
-    ('PG-001', 'Titik Pantau 1', 'Stasiun 1 (Koordinat Telemetri)', -6.8303, 107.5867, 65.0, 4.2, 28.5, 'normal'),
-    ('PG-002', 'Titik Pantau 2', 'Stasiun 2 (Koordinat Telemetri)', -6.8320, 107.5910, 41.8, 3.8, 33.7, 'warning'),
-    ('PG-003', 'Titik Pantau 3', 'Stasiun 3 (Koordinat Telemetri)', -6.8285, 107.5815, 71.3, 4.6, 28.6, 'normal')
+    ('PG-001', 'Parongpong', 'Parongpong, Bandung Barat', -6.8303, 107.5867, 0.0, 0.0, 0.0, 'normal'),
+    ('PG-002', 'Baleendah', 'Baleendah, Kab. Bandung', -6.9982, 107.6324, 0.0, 0.0, 0.0, 'normal'),
+    ('PG-003', 'Rancaupas', 'Rancaupas, Ciwidey', -7.1378, 107.3912, 0.0, 0.0, 0.0, 'normal')
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     region = EXCLUDED.region,

@@ -159,7 +159,7 @@ export function AgentChat() {
       <button
         type="button"
         onClick={() => setIsOpen((v) => !v)}
-        className="cursor-pointer fixed bottom-5 right-5 z-[70] flex items-center gap-2 rounded-full bg-[#2563eb] px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-blue-700 transition-colors"
+        className="cursor-pointer fixed bottom-5 right-5 z-[70] flex items-center gap-2 rounded-lg bg-[#2563eb] px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-blue-700 transition-colors"
         aria-expanded={isOpen}
         aria-controls="peatguard-agent-chat"
       >
@@ -173,18 +173,18 @@ export function AgentChat() {
       {isOpen && (
         <section
           id="peatguard-agent-chat"
-          className="fixed bottom-20 right-5 z-[70] flex h-[min(560px,calc(100vh-7rem))] w-[min(400px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl"
+          className="fixed bottom-20 right-5 z-[70] flex h-[min(560px,calc(100vh-7rem))] w-[min(400px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl"
           aria-label="Chat Asisten PeatGuard"
         >
-          <header className="flex items-center justify-between border-b border-gray-100 bg-gray-50/70 px-4 py-3">
+          <header className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3">
             <div>
-              <h2 className="m-0 text-sm font-semibold text-gray-800">Asisten PeatGuard</h2>
-              <p className="m-0 text-[11px] text-gray-500">AI · jawaban perlu dicek ulang di lapangan</p>
+              <h2 className="m-0 text-sm font-semibold text-slate-800">Asisten PeatGuard</h2>
+              <p className="m-0 text-[11px] text-slate-500">AI · jawaban perlu dicek ulang di lapangan</p>
             </div>
             <button
               type="button"
               onClick={resetConversation}
-              className="cursor-pointer shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+              className="cursor-pointer shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
               title="Mulai percakapan baru"
             >
               Percakapan baru
@@ -195,12 +195,12 @@ export function AgentChat() {
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed ${
+                  className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed ${
                     m.role === "user"
                       ? "rounded-br-sm bg-[#2563eb] text-white"
                       : m.role === "error"
                       ? "rounded-bl-sm border border-red-200 bg-red-50 text-red-700"
-                      : "rounded-bl-sm bg-gray-100 text-gray-800"
+                      : "rounded-bl-sm bg-slate-100 text-slate-800"
                   }`}
                 >
                   <FormattedText text={m.text} />
@@ -210,7 +210,7 @@ export function AgentChat() {
 
             {isSending && (
               <div className="flex justify-start">
-                <div className="rounded-2xl rounded-bl-sm bg-gray-100 px-3 py-2 text-sm text-gray-500">
+                <div className="rounded-lg rounded-bl-sm bg-slate-100 px-3 py-2 text-sm text-slate-500">
                   Agent sedang memeriksa data…
                 </div>
               </div>
@@ -223,7 +223,7 @@ export function AgentChat() {
                     key={s}
                     type="button"
                     onClick={() => sendMessage(s)}
-                    className="cursor-pointer block w-full rounded-lg border border-gray-200 px-3 py-2 text-left text-xs text-gray-600 hover:border-blue-300 hover:bg-blue-50/60"
+                    className="cursor-pointer block w-full rounded-lg border border-slate-200 px-3 py-2 text-left text-xs text-slate-600 hover:border-blue-300 hover:bg-blue-50/60"
                   >
                     {s}
                   </button>
@@ -237,7 +237,7 @@ export function AgentChat() {
               e.preventDefault();
               sendMessage(input);
             }}
-            className="flex items-end gap-2 border-t border-gray-100 p-3"
+            className="flex items-end gap-2 border-t border-slate-100 p-3"
           >
             <textarea
               value={input}
@@ -251,7 +251,7 @@ export function AgentChat() {
               rows={1}
               maxLength={1000}
               placeholder="Tulis pertanyaan…"
-              className="max-h-28 min-h-[38px] flex-1 resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+              className="max-h-28 min-h-[38px] flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
               aria-label="Pertanyaan untuk asisten"
             />
             <button
