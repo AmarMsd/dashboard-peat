@@ -74,14 +74,17 @@ CREATE POLICY "Allow public read access for notifications" ON public.notificatio
 DROP POLICY IF EXISTS "Allow public insert for sensor_logs" ON public.sensor_logs;
 CREATE POLICY "Allow public insert for sensor_logs" ON public.sensor_logs FOR INSERT WITH CHECK (true);
 
+-- Publik hanya boleh MEMPERBARUI nilai terakhir sensor (dipakai bridge), bukan menambah/menghapus titik.
 DROP POLICY IF EXISTS "Allow public update/upsert for sensors" ON public.sensors;
-CREATE POLICY "Allow public update/upsert for sensors" ON public.sensors FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Allow public update for sensors" ON public.sensors;
+CREATE POLICY "Allow public update for sensors" ON public.sensors FOR UPDATE USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow public insert for notifications" ON public.notifications;
 CREATE POLICY "Allow public insert for notifications" ON public.notifications FOR INSERT WITH CHECK (true);
 
+-- Dashboard bersifat publik: status "dibaca" disimpan di browser masing-masing pengunjung,
+-- jadi publik tidak perlu (dan tidak boleh) mengubah baris notifikasi.
 DROP POLICY IF EXISTS "Allow public update for notifications" ON public.notifications;
-CREATE POLICY "Allow public update for notifications" ON public.notifications FOR UPDATE USING (true) WITH CHECK (true);
 
 -- 5. Masukkan Data Awal (Seed) 3 Titik Pantau dengan Koordinat Nyata
 INSERT INTO public.sensors (id, name, region, latitude, longitude, last_moisture, last_ph, last_temperature, status)
@@ -124,8 +127,12 @@ CREATE TABLE IF NOT EXISTS public.agent_settings (
     monitor_enabled BOOLEAN NOT NULL DEFAULT FALSE,  -- agent pemantau terjadwal
     cooldown_minutes INT NOT NULL DEFAULT 60 CHECK (cooldown_minutes BETWEEN 5 AND 1440),
     daily_limit INT NOT NULL DEFAULT 30 CHECK (daily_limit BETWEEN 0 AND 1000),
+    chat_daily_limit INT NOT NULL DEFAULT 200 CHECK (chat_daily_limit BETWEEN 0 AND 10000),
     updated_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
+-- Untuk database yang sudah dibuat sebelum kolom ini ada
+ALTER TABLE public.agent_settings ADD COLUMN IF NOT EXISTS chat_daily_limit INT NOT NULL DEFAULT 200
+    CHECK (chat_daily_limit BETWEEN 0 AND 10000);
 INSERT INTO public.agent_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING;
 
 -- Catatan setiap kali n8n benar-benar memanggil model (untuk kuota & pemantauan biaya)
@@ -143,11 +150,9 @@ ALTER TABLE public.agent_runs ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow public read agent_settings" ON public.agent_settings;
 CREATE POLICY "Allow public read agent_settings" ON public.agent_settings FOR SELECT USING (true);
--- CATATAN KEAMANAN: sama seperti tabel lain, saat ini siapa pun dengan anon key dapat mengubah
--- pengaturan. Setelah dashboard memakai login (Supabase Auth), ganti `true` menjadi
--- `auth.role() = 'authenticated'`.
+-- Publik TIDAK boleh mengubah pengaturan langsung. Perubahan hanya lewat fungsi
+-- update_agent_settings() yang memeriksa PIN operator (lihat bagian 8).
 DROP POLICY IF EXISTS "Allow public update agent_settings" ON public.agent_settings;
-CREATE POLICY "Allow public update agent_settings" ON public.agent_settings FOR UPDATE USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow public read agent_runs" ON public.agent_runs;
 CREATE POLICY "Allow public read agent_runs" ON public.agent_runs FOR SELECT USING (true);
@@ -204,4 +209,125 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.agent_settings;
   EXCEPTION WHEN duplicate_object THEN NULL;
   END;
+END $$;
+
+-- GERBANG CHAT PUBLIK: n8n membaca view ini SEBELUM Guardrails.
+-- allowed = chat aktif DAN jumlah chat 24 jam terakhir belum melewati chat_daily_limit.
+CREATE OR REPLACE VIEW public.v_chat_gate WITH (security_invoker = true) AS
+SELECT
+    cfg.chat_enabled,
+    cfg.chat_daily_limit,
+    u.chat_24h,
+    (cfg.chat_enabled AND u.chat_24h < cfg.chat_daily_limit) AS allowed
+FROM public.agent_settings cfg
+CROSS JOIN LATERAL (
+    SELECT COUNT(*) AS chat_24h FROM public.agent_runs
+    WHERE kind = 'chat' AND created_at >= NOW() - INTERVAL '24 hours'
+) u
+WHERE cfg.id = 1;
+
+-- ==============================================================================
+-- 8. PIN OPERATOR (tanpa login)
+--    Dashboard ini publik. Pengaturan AI hanya bisa diubah oleh operator yang tahu PIN.
+--    PIN disimpan sebagai hash bersalt di tabel yang TIDAK bisa dibaca publik, dan
+--    dicek di dalam database (bukan di browser). 5x salah -> terkunci 15 menit.
+--
+--    Atur / ganti PIN (jalankan di SQL Editor Supabase, BUKAN dari dashboard):
+--      SELECT public.set_agent_admin_pin('ganti-dengan-pin-rahasia');
+-- ==============================================================================
+
+CREATE TABLE IF NOT EXISTS public.agent_admin (
+    id INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+    pin_salt TEXT NOT NULL,
+    pin_hash TEXT NOT NULL,
+    failed_attempts INT NOT NULL DEFAULT 0,
+    locked_until TIMESTAMPTZ
+);
+-- RLS aktif tanpa policy apa pun = tidak bisa dibaca/diubah lewat API publik.
+ALTER TABLE public.agent_admin ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION public.set_agent_admin_pin(p_pin TEXT)
+RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+    v_salt TEXT := md5(random()::text || clock_timestamp()::text);
+BEGIN
+    IF p_pin IS NULL OR length(p_pin) < 6 THEN
+        RAISE EXCEPTION 'PIN minimal 6 karakter';
+    END IF;
+    INSERT INTO public.agent_admin (id, pin_salt, pin_hash)
+    VALUES (1, v_salt, encode(sha256(convert_to(v_salt || p_pin, 'UTF8')), 'hex'))
+    ON CONFLICT (id) DO UPDATE
+        SET pin_salt = EXCLUDED.pin_salt, pin_hash = EXCLUDED.pin_hash,
+            failed_attempts = 0, locked_until = NULL;
+END $$;
+
+-- Hasil: 'ok' | 'invalid' | 'locked' | 'not_set'. Tidak melempar error, agar hitungan
+-- percobaan gagal tetap tersimpan.
+CREATE OR REPLACE FUNCTION public.check_agent_admin_pin(p_pin TEXT)
+RETURNS TEXT
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+    a public.agent_admin%ROWTYPE;
+BEGIN
+    SELECT * INTO a FROM public.agent_admin WHERE id = 1 FOR UPDATE;
+    IF NOT FOUND THEN
+        RETURN 'not_set';
+    END IF;
+    IF a.locked_until IS NOT NULL AND a.locked_until > NOW() THEN
+        RETURN 'locked';
+    END IF;
+    IF a.locked_until IS NOT NULL THEN
+        a.failed_attempts := 0; -- masa kunci sudah lewat
+    END IF;
+    IF p_pin IS NOT NULL AND encode(sha256(convert_to(a.pin_salt || p_pin, 'UTF8')), 'hex') = a.pin_hash THEN
+        UPDATE public.agent_admin SET failed_attempts = 0, locked_until = NULL WHERE id = 1;
+        RETURN 'ok';
+    END IF;
+    UPDATE public.agent_admin
+       SET failed_attempts = a.failed_attempts + 1,
+           locked_until = CASE WHEN a.failed_attempts + 1 >= 5 THEN NOW() + INTERVAL '15 minutes' ELSE NULL END
+     WHERE id = 1;
+    RETURN CASE WHEN a.failed_attempts + 1 >= 5 THEN 'locked' ELSE 'invalid' END;
+END $$;
+
+-- Dipanggil dashboard: supabase.rpc('update_agent_settings', { p_pin, p_patch }).
+-- p_patch = {} hanya memeriksa PIN (dipakai untuk "masuk operator").
+CREATE OR REPLACE FUNCTION public.update_agent_settings(p_pin TEXT, p_patch JSONB DEFAULT '{}'::jsonb)
+RETURNS JSONB
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+    v_check TEXT;
+    v_row public.agent_settings%ROWTYPE;
+BEGIN
+    v_check := public.check_agent_admin_pin(p_pin);
+    IF v_check <> 'ok' THEN
+        RETURN jsonb_build_object('ok', false, 'reason', v_check);
+    END IF;
+
+    IF p_patch IS NOT NULL AND p_patch <> '{}'::jsonb THEN
+        UPDATE public.agent_settings SET
+            chat_enabled     = COALESCE((p_patch->>'chat_enabled')::BOOLEAN, chat_enabled),
+            monitor_enabled  = COALESCE((p_patch->>'monitor_enabled')::BOOLEAN, monitor_enabled),
+            cooldown_minutes = COALESCE((p_patch->>'cooldown_minutes')::INT, cooldown_minutes),
+            daily_limit      = COALESCE((p_patch->>'daily_limit')::INT, daily_limit),
+            chat_daily_limit = COALESCE((p_patch->>'chat_daily_limit')::INT, chat_daily_limit),
+            updated_at       = NOW()
+        WHERE id = 1;
+    END IF;
+
+    SELECT * INTO v_row FROM public.agent_settings WHERE id = 1;
+    RETURN jsonb_build_object('ok', true, 'settings', to_jsonb(v_row));
+END $$;
+
+-- Hak eksekusi: publik hanya boleh memanggil update_agent_settings (yang memeriksa PIN).
+REVOKE ALL ON FUNCTION public.set_agent_admin_pin(TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.check_agent_admin_pin(TEXT) FROM PUBLIC;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+    REVOKE ALL ON FUNCTION public.set_agent_admin_pin(TEXT) FROM anon, authenticated;
+    REVOKE ALL ON FUNCTION public.check_agent_admin_pin(TEXT) FROM anon, authenticated;
+    GRANT EXECUTE ON FUNCTION public.update_agent_settings(TEXT, JSONB) TO anon, authenticated;
+  END IF;
 END $$;

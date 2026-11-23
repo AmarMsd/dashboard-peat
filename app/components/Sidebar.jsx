@@ -115,25 +115,25 @@ export function Sidebar({ active = "Dashboard" }) {
         </ul>
       </nav>
 
-      {/* Bottom help */}
+      {/* Bagian bawah: dashboard publik, tanpa akun */}
       <div className="mt-auto px-1.5 max-[640px]:px-0">
-        <button
-          className="cursor-pointer flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-xs text-slate-400 transition-colors hover:text-white max-[640px]:justify-center"
-          type="button"
-          aria-label="Bantuan"
-          title="Bantuan"
+        <a
+          href="#bantuan"
+          className="cursor-pointer flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-xs text-slate-400 no-underline transition-colors hover:text-white max-[640px]:justify-center"
+          aria-label="Bantuan dan kontak darurat"
+          title="Bantuan & kontak darurat"
         >
           <IconHelp />
-          <span className="max-[640px]:hidden text-xs">Bantuan</span>
-        </button>
-        <div className="mt-2.5 flex items-center gap-2 rounded-md bg-white/5 p-2 max-[640px]:justify-center">
-          <span className="grid size-7 shrink-0 place-items-center rounded-md bg-[#2563eb] text-xs font-bold text-white">
-            AM
-          </span>
-          <span className="min-w-0 max-[640px]:hidden">
-            <p className="m-0 truncate text-xs font-semibold text-white">Admin</p>
-            <p className="m-0 truncate text-[10px] text-slate-400">PeatGuard</p>
-          </span>
+          <span className="max-[640px]:hidden text-xs">Bantuan & Kontak Darurat</span>
+        </a>
+        <div className="mt-2.5 rounded-md bg-white/5 p-2.5 max-[640px]:hidden">
+          <p className="m-0 flex items-center gap-1.5 text-xs font-semibold text-white">
+            <span className="size-1.5 rounded-full bg-emerald-400" aria-hidden="true" />
+            Dashboard Publik
+          </p>
+          <p className="m-0 mt-0.5 text-[10px] leading-snug text-slate-400">
+            Data sensor terbuka untuk umum, tanpa perlu akun.
+          </p>
         </div>
       </div>
     </aside>

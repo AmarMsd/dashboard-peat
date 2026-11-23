@@ -30,11 +30,31 @@ Jalankan ulang `supabase/schema.sql` (aman dijalankan berulang). Skrip ini menam
 
 Skrip yang sama juga membuat:
 
-- tabel `agent_settings` — tombol on/off, cooldown, dan kuota (diubah dari halaman **/agent**);
+- tabel `agent_settings` — tombol on/off, cooldown, dan kuota (diubah dari halaman **/agent** oleh operator);
+- tabel `agent_admin` + fungsi `update_agent_settings()` — PIN operator (lihat 1.1);
+- view `v_chat_gate` — gerbang chat publik (on/off + kuota chat 24 jam);
 - tabel `agent_runs` — catatan setiap panggilan AI (untuk kuota & kartu pemakaian);
 - view `v_agent_usage` dan `v_agent_candidates` — ringkasan pemakaian & gerbang hemat token.
 
 Pastikan juga view `v_sensor_latest`, `v_sensor_hourly`, dan `v_notif_recent` sudah dibuat.
+
+### 1.1 PIN operator (dashboard publik tanpa login)
+
+Dashboard bisa dibuka siapa saja, jadi pengaturan AI di halaman `/agent` **hanya bisa diubah setelah
+memasukkan PIN operator**. PIN diperiksa di database (bukan di browser), disimpan sebagai hash bersalt
+di tabel yang tidak bisa dibaca publik, dan terkunci 15 menit setelah 5 kali salah.
+
+Atur PIN sekali di **SQL Editor Supabase** (minimal 6 karakter; jalankan ulang untuk mengganti PIN):
+
+```sql
+select public.set_agent_admin_pin('ganti-dengan-pin-rahasia');
+```
+
+Hal lain yang berubah untuk mode publik:
+
+- Status "sudah dibaca" notifikasi disimpan di browser masing-masing pengunjung, tidak lagi di database.
+- Publik tidak bisa lagi mengubah notifikasi, menghapus/menambah titik sensor, atau mengubah `agent_settings`
+  secara langsung.
 
 ---
 
@@ -70,18 +90,22 @@ menghemat token, workflow n8n harus membacanya **sebelum Guardrails** (Guardrail
 
 ```
 When chat message received
-  → Supabase: Get  agent_settings  (Select Condition: id = 1)
-  → IF {{ $json.chat_enabled }} is true
+  → Supabase: Get Many  v_chat_gate   (Limit 1)
+  → IF {{ $json.allowed }} is true
        ├─ true  → Guardrails → AI Agent → … (seperti sekarang)
-       └─ false → Set: output = "Asisten AI sedang dinonaktifkan untuk menghemat kuota. Silakan cek
-                                  halaman Peringatan atau hubungi admin."
+       └─ false → Set: output = "Asisten AI sedang tidak tersedia (dinonaktifkan atau kuota harian
+                                  habis). Silakan cek halaman Peringatan, atau hubungi 112/BPBD bila darurat."
 ```
 
 Pada node Guardrails, pakai `{{ $('When chat message received').item.json.chatInput }}` sebagai teks yang
 diperiksa, karena output node Supabase menggantikan item sebelumnya.
 
-Opsional, untuk mengisi angka **Chat** di kartu *Pemakaian 24 Jam*: setelah AI Agent, tambahkan Supabase
-*Create* ke tabel `agent_runs` dengan `kind = chat`.
+`allowed` bernilai `true` hanya jika chat aktif **dan** jumlah chat 24 jam terakhir masih di bawah
+`chat_daily_limit` (bawaan 200, bisa diubah operator). Karena dashboard publik, batas ini penting agar
+kuota tidak dihabiskan satu pengunjung.
+
+**Wajib** untuk kuota chat: setelah AI Agent, tambahkan Supabase *Create* ke tabel `agent_runs` dengan
+`kind = chat`. Tanpa catatan ini, `chat_24h` selalu 0 dan batas chat tidak pernah tercapai.
 
 ### 2.4 Pengaturan dashboard
 
@@ -234,6 +258,7 @@ notifikasi tampil dengan label **AI** beserta **Saran** tindakannya — tanpa pe
 | Eskalasi selalu lolos | Pemantau | Waspada → Kritis tetap dilaporkan walau masih cooldown |
 | Kuota 24 jam | Pemantau | Dihitung dari `agent_runs`; bila habis, AI berhenti |
 | Satu panggilan per jalan | Pemantau | Semua kandidat digabung dalam satu prompt |
+| Kuota chat publik | Chat | `v_chat_gate` menolak sebelum Guardrails bila kuota 24 jam habis |
 | Guardrails ringkas | Chat | Matikan pemeriksaan LLM yang tidak perlu; pakai model ringan |
 
 Untuk memantau biaya nyata, buka tab *Executions* n8n: setiap node model menampilkan jumlah token.
@@ -261,9 +286,12 @@ Untuk memantau biaya nyata, buka tab *Executions* n8n: setiap node model menampi
 
 ## 6. Keamanan
 
-- Chat URL bersifat publik: siapa pun yang tahu URL-nya bisa memakai agent (dan biaya model). Pertimbangkan
-  **Basic Auth** pada Chat Trigger + reverse proxy, atau batasi akses dashboard dengan login.
+- Chat URL bersifat publik: siapa pun yang tahu URL-nya bisa memakai agent. Batas utamanya adalah
+  `chat_daily_limit` di `v_chat_gate`. Untuk lapisan tambahan, pasang *rate limit* per IP di reverse proxy
+  (mis. Nginx/Cloudflare) di depan n8n.
 - Agent hanya diberi tool **baca** (Get/Get Many). Satu-satunya penulisan adalah node *Create* di workflow B,
   yang berjalan di server n8n, bukan dari browser.
-- Kebijakan RLS saat ini masih mengizinkan siapa pun menulis ke tabel `notifications` (lihat bagian *Temuan*
-  di dokumen teknis). Idealnya penulisan hanya lewat *service role* di n8n/bridge.
+- Publik masih bisa **menambah** baris `sensor_logs`/`notifications` dan memperbarui nilai `sensors`,
+  karena bridge memakai kunci publik yang sama. Langkah berikutnya: jalankan bridge dengan *service role key*
+  (dari variabel lingkungan, bukan di kode), hentikan penulisan log dari browser, lalu hapus policy
+  INSERT/UPDATE publik tersebut.

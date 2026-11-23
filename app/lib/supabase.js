@@ -184,30 +184,6 @@ export function mapSupabaseNotification(row) {
   };
 }
 
-/**
- * Menandai satu notifikasi sebagai sudah dibaca di Supabase
- */
-export async function markNotificationReadInSupabase(id) {
-  try {
-    const { error } = await supabase.from("notifications").update({ is_read: true }).eq("id", id);
-    if (error) console.warn("Gagal menandai notifikasi:", error.message);
-  } catch (err) {
-    console.warn("Supabase update notifikasi error:", err);
-  }
-}
-
-/**
- * Menandai semua notifikasi yang belum dibaca sebagai sudah dibaca di Supabase
- */
-export async function markAllNotificationsReadInSupabase() {
-  try {
-    const { error } = await supabase.from("notifications").update({ is_read: true }).eq("is_read", false);
-    if (error) console.warn("Gagal menandai semua notifikasi:", error.message);
-  } catch (err) {
-    console.warn("Supabase update notifikasi error:", err);
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Pengaturan AI Agent (tabel agent_settings, view v_agent_usage)
 // ---------------------------------------------------------------------------
@@ -229,23 +205,20 @@ export async function fetchAgentSettings() {
 }
 
 /**
- * Memperbarui sebagian pengaturan agent. Mengembalikan baris terbaru atau null bila gagal.
+ * Memperbarui pengaturan agent lewat fungsi database yang memeriksa PIN operator.
+ * patch kosong ({}) = hanya memeriksa PIN.
+ * Hasil: { ok: true, settings } atau { ok: false, reason: "invalid" | "locked" | "not_set" | "error" }
  */
-export async function updateAgentSettings(patch) {
+export async function updateAgentSettings(pin, patch = {}) {
   try {
-    const { data, error } = await supabase
-      .from("agent_settings")
-      .update({ ...patch, updated_at: new Date().toISOString() })
-      .eq("id", 1)
-      .select()
-      .maybeSingle();
+    const { data, error } = await supabase.rpc("update_agent_settings", { p_pin: pin, p_patch: patch });
     if (error) {
-      console.warn("Gagal menyimpan agent_settings:", error.message);
-      return null;
+      console.warn("Gagal memanggil update_agent_settings:", error.message);
+      return { ok: false, reason: "error" };
     }
-    return data;
+    return data || { ok: false, reason: "error" };
   } catch (err) {
-    return null;
+    return { ok: false, reason: "error" };
   }
 }
 

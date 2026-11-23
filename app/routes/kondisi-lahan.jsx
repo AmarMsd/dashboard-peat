@@ -1,4 +1,5 @@
 import { DashboardFrame } from "../components/DashboardFrame.jsx";
+import { ThresholdReferenceCard } from "../components/ThresholdReferenceCard.jsx";
 import { DataTable } from "../components/DataTable.jsx";
 import { useSensorData } from "../context/SensorContext";
 
@@ -147,6 +148,11 @@ export default function LandConditionPage() {
             initialPageSize={10}
           />
         </section>
+
+        {/* Transparansi untuk publik: dasar penentuan status Aman / Waspada / Kritis */}
+        <div className="mt-5">
+          <ThresholdReferenceCard />
+        </div>
       </main>
     </DashboardFrame>
   );
