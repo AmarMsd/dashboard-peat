@@ -104,6 +104,27 @@ export async function updateSensorCurrentStateInSupabase(sensor) {
 }
 
 /**
+ * Mengambil status titik sensor terkini dari tabel sensors Supabase
+ */
+export async function fetchSensorsFromSupabase() {
+  try {
+    const { data, error } = await supabase
+      .from("sensors")
+      .select("*")
+      .order("id", { ascending: true });
+
+    if (error) {
+      console.warn("Notice Supabase sensors:", error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.warn("Supabase fetch sensors error:", err);
+    return null;
+  }
+}
+
+/**
  * Mengambil notifikasi terkini dari Supabase
  */
 export async function fetchNotificationsFromSupabase(limit = 20) {

@@ -374,7 +374,7 @@ export default function RiwayatPage() {
         {/* DataTables Section */}
         <section className="overflow-hidden rounded-xl bg-white shadow-sm border border-gray-200">
           <div className="border-b border-gray-100 px-5 py-4">
-            <h2 className="m-0 text-sm font-semibold text-gray-800">Log Catatan Sensor Realtime (DataTables)</h2>
+            <h2 className="m-0 text-sm font-semibold text-gray-800">Log Catatan Sensor Realtime</h2>
             <p className="m-0 mt-0.5 text-xs text-gray-500">
               Pencatatan runtun waktu (audit trail) dari setiap paket transmisi. Arahkan kursor ke badge status untuk melihat keterangan ilmiah kondisi gambut.
             </p>
@@ -388,7 +388,11 @@ export default function RiwayatPage() {
             defaultSortDir="desc"
             pageSizeOptions={[10, 25, 50, 100]}
             initialPageSize={10}
-            emptyMessage="Tidak ada catatan riwayat yang cocok dengan pencarian atau filter."
+            emptyMessage={
+              historicalRecords.length === 0
+                ? "Belum ada rekaman sensor di Supabase. Menunggu paket data telemetri pertama..."
+                : "Tidak ada catatan riwayat yang cocok dengan pencarian atau filter."
+            }
           />
         </section>
       </main>

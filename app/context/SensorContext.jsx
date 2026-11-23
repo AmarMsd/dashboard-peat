@@ -3,6 +3,7 @@ import { defaultSensors, initialMqttTopics, evaluateSensorStatus, getStatusReaso
 import {
   supabase,
   fetchSensorLogsFromSupabase,
+  fetchSensorsFromSupabase,
   insertSensorLogToSupabase,
   updateSensorCurrentStateInSupabase,
 } from "../lib/supabase";
@@ -25,48 +26,6 @@ const MQTT_USER = "varian";
 const MQTT_PASS = "ZjdRZHotQ";
 const STORAGE_KEY = "peatguard_sensor_history_v1";
 
-// Helper membuat data historis awal realistis (24 jam terakhir) jika storage masih kosong
-function generateInitialHistoricalData() {
-  const records = [];
-  const now = Date.now();
-  const intervals = [
-    { label: "Parongpong", id: "PG-001", baseM: 68, basePh: 4.2, baseT: 28 },
-    { label: "Baleendah", id: "PG-002", baseM: 42, basePh: 3.8, baseT: 32 },
-    { label: "Rancaupas", id: "PG-003", baseM: 71, basePh: 4.5, baseT: 27 },
-  ];
-
-  // Buat 36 log sampel mundur per 40 menit
-  for (let i = 36; i >= 0; i--) {
-    const timestamp = new Date(now - i * 40 * 60 * 1000);
-    intervals.forEach((node) => {
-      // Variasi acak halus alami
-      const noiseM = (Math.sin(i * 0.4) * 3) + ((Math.random() - 0.5) * 2);
-      const noiseT = (Math.cos(i * 0.3) * 2) + ((Math.random() - 0.5) * 1.2);
-      const noisePh = ((Math.random() - 0.5) * 0.2);
-
-      const m = Math.max(20, Math.min(95, Math.round((node.baseM + noiseM) * 10) / 10));
-      const t = Math.round((node.baseT + noiseT) * 10) / 10;
-      const ph = Math.round((node.basePh + noisePh) * 10) / 10;
-      const status = evaluateSensorStatus(m, t, ph);
-
-      records.push({
-        id: `LOG-${timestamp.getTime()}-${node.id}`,
-        timestamp: timestamp.toISOString(),
-        timeFormatted: timestamp.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-        dateFormatted: timestamp.toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
-        sensorId: node.id,
-        sensorName: node.label,
-        moisture: m,
-        ph: ph,
-        temperature: t,
-        status: status,
-      });
-    });
-  }
-
-  return records.reverse(); // Terbaru di atas
-}
-
 export function SensorProvider({ children }) {
   const [sensors, setSensors] = useState(defaultSensors);
   const [selectedSensor, setSelectedSensor] = useState(defaultSensors[0]);
@@ -77,14 +36,69 @@ export function SensorProvider({ children }) {
   const [historicalRecords, setHistoricalRecords] = useState([]);
   const mqttClientRef = useRef(null);
 
-  // Inisialisasi data historis dari Supabase (dengan fallback ke localStorage)
+  // Inisialisasi data mutakhir murni dari Supabase (tanpa data tiruan/mock .json)
   useEffect(() => {
     if (typeof window === "undefined") return;
     let isCancelled = false;
 
     async function loadData() {
-      // 1. Coba baca dari Supabase
-      const remoteLogs = await fetchSensorLogsFromSupabase(150);
+      // 1. Ambil status sensor mutakhir dan log riwayat dari Supabase
+      const [remoteLogs, remoteSensors] = await Promise.all([
+        fetchSensorLogsFromSupabase(150),
+        fetchSensorsFromSupabase(),
+      ]);
+
+      // Perbarui status 3 titik sensor dari Supabase jika ada
+      if (remoteSensors && Array.isArray(remoteSensors) && remoteSensors.length > 0) {
+        if (!isCancelled) {
+          setSensors((prevSensors) =>
+            prevSensors.map((s) => {
+              const remote = remoteSensors.find((r) => r.id === s.id);
+              if (remote) {
+                const updated = {
+                  ...s,
+                  name: remote.name || s.name,
+                  region: remote.region || s.region,
+                  lat: remote.latitude != null ? Number(remote.latitude) : s.lat,
+                  lng: remote.longitude != null ? Number(remote.longitude) : s.lng,
+                  moisture: Number(remote.last_moisture ?? 0),
+                  ph: Number(remote.last_ph ?? 0),
+                  temperature: Number(remote.last_temperature ?? 0),
+                  status: remote.status || s.status,
+                  lastReading: remote.updated_at
+                    ? new Date(remote.updated_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" })
+                    : "Tersinkron Supabase",
+                };
+                return updated;
+              }
+              return s;
+            })
+          );
+
+          // Sinkronkan juga nilai pada panel 9 topik dari pembacaan terakhir di Supabase
+          setLiveTopics((prevTopics) =>
+            prevTopics.map((topicItem) => {
+              const station = remoteSensors.find((r) => r.id === `PG-00${topicItem.nodeIndex}`);
+              if (station) {
+                let val = topicItem.value;
+                if (topicItem.param === "moisture" && station.last_moisture != null) val = station.last_moisture;
+                if (topicItem.param === "ph" && station.last_ph != null) val = station.last_ph;
+                if (topicItem.param === "temp" && station.last_temperature != null) val = station.last_temperature;
+                return {
+                  ...topicItem,
+                  value: val !== 0 ? val : topicItem.value,
+                  lastUpdate: station.updated_at
+                    ? new Date(station.updated_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+                    : topicItem.lastUpdate,
+                };
+              }
+              return topicItem;
+            })
+          );
+        }
+      }
+
+      // Perbarui log riwayat dari Supabase
       if (remoteLogs && Array.isArray(remoteLogs) && remoteLogs.length > 0) {
         const formatted = remoteLogs.map((row) => {
           const t = new Date(row.created_at);
@@ -98,6 +112,8 @@ export function SensorProvider({ children }) {
             moisture: Number(row.moisture),
             ph: Number(row.ph),
             temperature: Number(row.temperature),
+            latitude: row.latitude,
+            longitude: row.longitude,
             status: row.status,
             reason: row.reason,
           };
@@ -105,38 +121,15 @@ export function SensorProvider({ children }) {
         if (!isCancelled) {
           setHistoricalRecords(formatted);
           setSupabaseStatus("connected");
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(formatted.slice(0, 150)));
-          } catch (e) {}
         }
         return;
       }
 
-      // 2. Jika Supabase kosong/belum dibuat tabelnya, fallback ke localStorage
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            if (!isCancelled) {
-              setHistoricalRecords(parsed);
-              setSupabaseStatus("offline");
-            }
-            return;
-          }
-        }
-      } catch (e) {
-        console.warn("Gagal membaca history dari storage", e);
-      }
-
-      // 3. Fallback ke initial mock data
-      const initial = generateInitialHistoricalData();
+      // Jika Supabase kosong (belum ada transmisi), JANGAN gunakan data mock dari json/generator
+      // Cukup kosongkan riwayat sehingga murni menunggu transmisi dari sensor fisik
       if (!isCancelled) {
-        setHistoricalRecords(initial);
-        setSupabaseStatus("offline");
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(initial.slice(0, 150)));
-        } catch (e) {}
+        setHistoricalRecords([]);
+        setSupabaseStatus(remoteLogs !== null ? "connected" : "offline");
       }
     }
 

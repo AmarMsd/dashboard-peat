@@ -182,9 +182,6 @@ export function MainMenu() {
               Setiap Titik Pantau menggabungkan 3 parameter spesifik (Kelembapan, pH, dan Suhu) dari topik sensor masing-masing.
             </p>
           </div>
-          <span className="text-xs text-gray-400 font-mono">
-            Broker: wss://mqtt.amarmsd.my.id
-          </span>
         </div>
 
         {/* 3 Columns Grouped by Node Station */}

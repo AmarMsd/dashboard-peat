@@ -5,6 +5,7 @@ const navigation = [
   { label: "Kondisi Lahan", href: "/kondisi-lahan", icon: IconDroplets },
   { label: "Peringatan", href: "/peringatan", icon: IconBell },
   { label: "Laporan", href: "/laporan", icon: IconFileText },
+  { label: "Agent", href: "/agent", icon: IconHelp },
 ];
 
 function IconHome() {

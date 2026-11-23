@@ -5,13 +5,13 @@ import { useSensorData } from "../context/SensorContext";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 
-console.log("API_BASE:", API_BASE); 
+// console.log("API_BASE:", API_BASE); 
 // Data cadangan lokal jika backend FastAPI belum dinyalakan
 const FALLBACK_NOTIFICATIONS = [
   {
     id: "notif-1",
     title: "Kondisi Gambut Kering (Waspada)",
-    message: "Titik Pantau 2 (Sungai Tohor) mencatat kelembapan 41.8%. Periksa ketersediaan air kanal.",
+    message: "Baleendah mencatat kelembapan 41.8%. Periksa ketersediaan air kanal.",
     type: "warning",
     timestamp: "2 menit lalu",
     is_read: false,
@@ -20,7 +20,7 @@ const FALLBACK_NOTIFICATIONS = [
   {
     id: "notif-2",
     title: "Peningkatan Suhu Lapisan Gambut",
-    message: "Suhu di Titik Pantau 2 terdeteksi 33.7°C, mendekati ambang batas hotspot panas permukaan.",
+    message: "Suhu di Baleendah terdeteksi 33.7°C, mendekati ambang batas hotspot panas permukaan.",
     type: "warning",
     timestamp: "15 menit lalu",
     is_read: false,
@@ -38,7 +38,7 @@ const FALLBACK_NOTIFICATIONS = [
   {
     id: "notif-4",
     title: "Kondisi Gambut Aman Terhidrasi",
-    message: "Titik Pantau 3 (Kuala Kampar) mencatat kelembapan stabil di atas 70% dan keasaman 4.6 pH.",
+    message: "Rancaupas mencatat kelembapan stabil di atas 70% dan keasaman 4.6 pH.",
     type: "success",
     timestamp: "2 jam lalu",
     is_read: true,
@@ -137,7 +137,7 @@ export function DashboardFrame({ active, children }) {
         // Cocokkan menu halaman
         const pages = [
           { title: "Dashboard Utama", url: "/", cat: "halaman", sub: "Ringkasan metrik dan peta gambut" },
-          { title: "Riwayat Data & Tren", url: "/riwayat", cat: "halaman", sub: "DataTables dan grafik tren waktu" },
+          { title: "Riwayat Data & Tren", url: "/riwayat", cat: "halaman", sub: "Data dan grafik tren waktu" },
           { title: "Peta Sensor", url: "/peta-sensor", cat: "halaman", sub: "Peta persebaran Leaflet interaktif" },
           { title: "Kondisi Lahan", url: "/kondisi-lahan", cat: "halaman", sub: "Analisis kelembapan, pH, dan suhu" },
           { title: "Peringatan", url: "/peringatan", cat: "halaman", sub: "Daftar titik kritis / waspada" },
