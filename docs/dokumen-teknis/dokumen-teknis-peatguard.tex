@@ -1,0 +1,1287 @@
+% =====================================================================
+%  DOKUMEN TEKNIS PEATGUARD
+%  Sistem Pemantauan & Peringatan Dini Kebakaran Lahan Gambut
+%  Kompilasi: pdflatex dokumen-teknis-peatguard.tex  (jalankan 2 kali)
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+
+% ---------- Paket dasar ----------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[indonesian]{babel}
+\usepackage{lmodern}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{microtype}
+\usepackage{setspace}
+\setstretch{1.15}
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0pt}
+
+% ---------- Tabel & daftar ----------
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\setlist{itemsep=2pt, topsep=4pt}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+
+% ---------- Gambar & diagram ----------
+\usepackage{float}
+\usepackage{caption}
+\captionsetup{font=small, labelfont=bf}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes.multipart, shapes.geometric,
+                calc, fit, backgrounds}
+
+% ---------- Kode ----------
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  frame=single,
+  rulecolor=\color{black},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  xleftmargin=4pt, xrightmargin=4pt,
+  aboveskip=8pt, belowskip=8pt,
+  literate={°}{{\textdegree}}1 {·}{{$\cdot$}}1
+}
+
+% ---------- Header / footer ----------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small Dokumen Teknis PeatGuard}
+\rhead{\small Versi 1.0}
+\cfoot{\small \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\usepackage[hidelinks]{hyperref}
+
+% =====================================================================
+%  Gaya UML (oranye) -- tabel & gambar lain hitam-putih
+% =====================================================================
+\definecolor{umlfill}{RGB}{255,236,214}   % oranye sangat muda (isi)
+\definecolor{umldraw}{RGB}{204,102,0}     % oranye tua (garis)
+
+\tikzset{
+  >={Stealth[length=2.4mm]},
+  % kotak umum UML
+  umlbox/.style={draw=umldraw, fill=umlfill, thick, rounded corners=2pt,
+                 align=center, font=\small, inner sep=5pt},
+  % kelas UML 3 bagian
+  umlclass/.style={draw=umldraw, fill=umlfill, thick, rectangle split,
+                   rectangle split parts=3, rectangle split part align={center,left,left},
+                   font=\footnotesize, inner sep=4pt, text width=#1},
+  umlclass/.default=5.2cm,
+  % entitas ERD 2 bagian
+  erd/.style={draw=umldraw, fill=umlfill, thick, rectangle split,
+              rectangle split parts=2, rectangle split part align={center,left},
+              font=\footnotesize, inner sep=4pt, text width=#1},
+  erd/.default=5.4cm,
+  % use case
+  usecase/.style={draw=umldraw, fill=umlfill, thick, ellipse, align=center,
+                  font=\footnotesize, minimum width=5.4cm, minimum height=0.8cm,
+                  inner sep=1pt},
+  % aktivitas
+  action/.style={draw=umldraw, fill=umlfill, thick, rounded corners=7pt,
+                 align=center, font=\small, minimum width=5.6cm,
+                 minimum height=0.8cm, text width=5.4cm},
+  decision/.style={draw=umldraw, fill=umlfill, thick, diamond, aspect=2.6,
+                   align=center, font=\footnotesize, inner sep=1pt},
+  startnode/.style={circle, fill=umldraw, minimum size=4mm, inner sep=0},
+  endnode/.style={circle, draw=umldraw, thick, minimum size=5.5mm, inner sep=0,
+                  path picture={\fill[umldraw] (path picture bounding box.center) circle (1.7mm);}},
+  % state
+  state/.style={draw=umldraw, fill=umlfill, thick, rounded corners=8pt,
+                align=center, font=\small, minimum width=3.4cm, minimum height=1.2cm},
+  % node deployment
+  devnode/.style={draw=umldraw, fill=umlfill, thick, align=center, font=\footnotesize,
+                  inner sep=5pt, text width=#1},
+  devnode/.default=4.2cm,
+  % panah
+  flow/.style={->, thick, draw=umldraw},
+  dep/.style={->, thick, dashed, draw=umldraw},
+  assoc/.style={thick, draw=umldraw},
+  lbl/.style={font=\scriptsize, fill=white, inner sep=1.5pt, align=center},
+  % sequence diagram
+  lifehead/.style={draw=umldraw, fill=umlfill, thick, font=\footnotesize,
+                   align=center, minimum width=2.5cm, minimum height=0.9cm},
+  msg/.style={->, thick, draw=umldraw},
+  ret/.style={->, dashed, draw=umldraw},
+  msglbl/.style={font=\scriptsize, above, inner sep=1.5pt, align=center},
+}
+
+% gambar aktor (stick figure)
+\newcommand{\actor}[3]{% posisi, nama node, label
+  \begin{scope}[shift={#1}, draw=umldraw, thick]
+    \draw (0,0.55) circle (0.2);
+    \draw (0,0.35) -- (0,-0.15);
+    \draw (-0.35,0.2) -- (0.35,0.2);
+    \draw (0,-0.15) -- (-0.28,-0.6);
+    \draw (0,-0.15) -- (0.28,-0.6);
+    \node[font=\footnotesize, align=center, below] at (0,-0.65) {#3};
+    \coordinate (#2) at (0,0.1);
+  \end{scope}
+}
+
+% kotak penjelasan
+\usepackage[most]{tcolorbox}
+\newtcolorbox{catatan}[1][Catatan]{
+  enhanced, colback=white, colframe=black, boxrule=0.6pt, arc=0pt,
+  left=6pt, right=6pt, top=4pt, bottom=4pt,
+  fonttitle=\bfseries\small, coltitle=black, colbacktitle=white,
+  attach title to upper, after title={\par\smallskip}, title={#1}}
+
+\newcommand{\kode}[1]{\texttt{#1}}
+
+% =====================================================================
+\begin{document}
+% =====================================================================
+
+% ---------- Halaman judul ----------
+\begin{titlepage}
+  \centering
+  \vspace*{2.5cm}
+  {\LARGE\bfseries DOKUMEN TEKNIS SISTEM\par}
+  \vspace{0.4cm}
+  {\Huge\bfseries PeatGuard\par}
+  \vspace{0.4cm}
+  {\Large Sistem Pemantauan dan Peringatan Dini\\Kebakaran Lahan Gambut Berbasis IoT\par}
+  \vspace{1.5cm}
+  \rule{0.6\linewidth}{0.6pt}\par
+  \vspace{0.4cm}
+  {\large Bahan Pemaparan Teknis\par}
+  \vspace{0.2cm}
+  {\normalsize Mencakup: \textit{Backend} (\kode{be-peat}) dan \textit{Dashboard} (\kode{dashboard-peat})\par}
+  \rule{0.6\linewidth}{0.6pt}\par
+  \vfill
+  \begin{tabular}{ll}
+    Versi dokumen & 1.0 \\
+    Tanggal       & 23 November 2026 \\
+    Status        & Draf untuk pemaparan \\
+  \end{tabular}
+  \vspace*{1.5cm}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+\listoffigures
+\listoftables
+\newpage
+
+% =====================================================================
+\section{Pendahuluan}
+% =====================================================================
+
+\subsection{Latar Belakang}
+Kebakaran lahan gambut berbeda dengan kebakaran hutan biasa. Api di lahan gambut
+sering kali \textbf{membara di bawah permukaan tanah} tanpa nyala yang terlihat,
+sehingga sulit dideteksi dengan mata maupun citra satelit sampai kondisinya sudah parah.
+Padahal, tanda-tandanya bisa dibaca lebih awal dari \textbf{kondisi tanah}:
+tanah yang makin kering, suhu tanah yang naik, dan keasaman (pH) yang berubah.
+
+\textbf{PeatGuard} dibuat untuk membaca tanda-tanda tersebut secara terus-menerus
+(\textit{real-time}) melalui sensor di lapangan, lalu menampilkannya dalam
+\textit{dashboard} web yang mudah dipahami oleh petugas pemantau.
+
+\subsection{Tujuan Sistem}
+\begin{enumerate}
+  \item Memantau \textbf{kelembapan tanah}, \textbf{pH tanah}, dan \textbf{suhu tanah}
+        dari beberapa titik pantau secara langsung.
+  \item Menentukan \textbf{status risiko} setiap titik secara otomatis:
+        \textit{Aman (normal)}, \textit{Waspada (warning)}, atau \textit{Kritis (critical)}.
+  \item Memberikan \textbf{peringatan dini} ketika ada titik yang masuk kondisi berbahaya.
+  \item Menyimpan \textbf{riwayat data} untuk analisis tren dan pembuatan laporan.
+\end{enumerate}
+
+\subsection{Ruang Lingkup Dokumen}
+Dokumen ini menjelaskan cara kerja sistem dari sisi teknis dengan bahasa sederhana,
+meliputi arsitektur, diagram UML, rancangan basis data, aturan penentuan status,
+spesifikasi API, cara menjalankan, serta catatan perbaikan. Dokumen disusun
+berdasarkan kode sumber pada dua repositori:
+
+\begin{table}[H]
+\centering
+\caption{Repositori yang dibahas}
+\label{tab:repo}
+\begin{tabularx}{\linewidth}{@{}lL@{}}
+\toprule
+\textbf{Repositori} & \textbf{Isi} \\
+\midrule
+\kode{be-peat}        & \textit{Backend} API (Python, FastAPI) untuk fitur \textbf{pencarian} dan \textbf{notifikasi}. \\
+\kode{dashboard-peat} & \textit{Dashboard} web (React Router), skrip \textit{bridge} MQTT ke Supabase, dan skema basis data. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Istilah yang Perlu Diketahui}
+\begin{table}[H]
+\centering
+\caption{Daftar istilah}
+\label{tab:istilah}
+\begin{tabularx}{\linewidth}{@{}lL@{}}
+\toprule
+\textbf{Istilah} & \textbf{Penjelasan sederhana} \\
+\midrule
+IoT & \textit{Internet of Things}; perangkat fisik (di sini: sensor tanah) yang bisa mengirim data lewat internet. \\
+Telemetri & Data hasil pengukuran sensor yang dikirim dari jarak jauh. \\
+MQTT & Protokol pengiriman pesan yang ringan, cocok untuk sensor. Bekerja seperti \textit{grup chat}: pengirim \textit{publish} ke sebuah \textbf{topik}, penerima \textit{subscribe} ke topik itu. \\
+\textit{Broker} MQTT & Server ``kantor pos'' yang menerima pesan dari sensor lalu meneruskannya ke semua pihak yang berlangganan. \\
+\textit{Bridge Worker} & Program kecil yang berjalan terus di latar belakang untuk memindahkan data dari MQTT ke basis data. \\
+Supabase & Layanan basis data PostgreSQL di \textit{cloud} yang punya fitur \textit{Realtime} (memberi kabar ke \textit{dashboard} setiap ada data baru). \\
+API & Pintu komunikasi antarprogram. \textit{Dashboard} ``bertanya'' ke API, API ``menjawab'' dalam format JSON. \\
+REST & Gaya rancangan API memakai alamat (URL) dan metode HTTP seperti GET dan POST. \\
+MVC & \textit{Model--View--Controller}; cara membagi kode menjadi bagian data (\textit{Model}), pintu masuk (\textit{View}), dan logika (\textit{Controller}). \\
+UML & \textit{Unified Modeling Language}; standar gambar/diagram untuk menjelaskan rancangan perangkat lunak. \\
+CME & \textit{Critical Moisture of Extinction}; batas kelembapan di mana bara api gambut tidak bisa lagi menjalar. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% =====================================================================
+\section{Gambaran Umum Sistem}
+% =====================================================================
+
+Secara sederhana, PeatGuard bekerja dalam lima langkah:
+
+\begin{enumerate}
+  \item \textbf{Mengukur.} Sensor di tiga titik pantau mengukur kelembapan, pH, dan suhu tanah.
+  \item \textbf{Mengirim.} Setiap hasil ukur dikirim ke \textit{broker} MQTT, misalnya ke topik
+        \kode{sensor/soil/temp2} (suhu di titik 2).
+  \item \textbf{Menilai.} \textit{Bridge worker} dan \textit{dashboard} menerima pesan itu,
+        lalu menilai statusnya (Aman / Waspada / Kritis) berdasarkan ambang batas ilmiah.
+  \item \textbf{Menyimpan.} Data disimpan di basis data Supabase sebagai riwayat.
+        Jika statusnya kritis, dibuatkan catatan notifikasi.
+  \item \textbf{Menampilkan.} \textit{Dashboard} menampilkan angka terbaru, peta, grafik tren,
+        dan daftar peringatan kepada petugas.
+\end{enumerate}
+
+\begin{catatan}[Analogi singkat]
+Bayangkan sensor sebagai \textbf{wartawan di lapangan}, \textit{broker} MQTT sebagai
+\textbf{kantor redaksi} yang menerima dan menyebarkan berita, basis data sebagai
+\textbf{arsip}, dan \textit{dashboard} sebagai \textbf{layar televisi} di ruang kendali.
+Begitu ada berita baru, layar langsung ikut berubah.
+\end{catatan}
+
+\subsection{Titik Pantau}
+Saat ini sistem dikonfigurasi untuk tiga titik pantau (\textit{node}):
+
+\begin{table}[H]
+\centering
+\caption{Daftar titik pantau}
+\label{tab:titik}
+\begin{tabular}{@{}cllcc@{}}
+\toprule
+\textbf{Node} & \textbf{ID} & \textbf{Nama} & \textbf{Lintang} & \textbf{Bujur} \\
+\midrule
+1 & PG-001 & Parongpong & $-6{,}8303$ & $107{,}5867$ \\
+2 & PG-002 & Baleendah  & $-6{,}8320$ & $107{,}5910$ \\
+3 & PG-003 & Rancaupas  & $-6{,}8285$ & $107{,}5815$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Koordinat di atas adalah nilai awal; jika sensor mengirim \kode{latitude} dan
+\kode{longitude}, posisi di peta akan diperbarui otomatis.
+
+% =====================================================================
+\section{Arsitektur Sistem}
+% =====================================================================
+
+Gambar~\ref{fig:arsitektur} menunjukkan komponen utama dan bagaimana data mengalir di antaranya.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=1.2cm]
+  \node[umlbox, text width=3.6cm] (sensor) at (0,0)
+     {\textbf{Perangkat Sensor}\\ 3 titik pantau\\ \scriptsize kelembapan, pH, suhu};
+  \node[umlbox, text width=3.6cm] (broker) at (5.2,0)
+     {\textbf{Broker MQTT}\\ \scriptsize via WebSocket (wss)\\ \scriptsize topik \kode{sensor/soil/\#}};
+  \node[umlbox, text width=3.6cm] (bridge) at (10.4,0)
+     {\textbf{Bridge Worker}\\ \scriptsize Node.js\\ \scriptsize \kode{mqtt\_supabase\_bridge.js}};
+  \node[umlbox, text width=3.6cm] (db) at (10.4,-3.6)
+     {\textbf{Supabase}\\ \scriptsize PostgreSQL + Realtime\\ \scriptsize 3 tabel};
+  \node[umlbox, text width=3.6cm] (dash) at (5.2,-3.6)
+     {\textbf{Dashboard Web}\\ \scriptsize React Router + Leaflet\\ \scriptsize 6 halaman};
+  \node[umlbox, text width=3.6cm] (api) at (0,-3.6)
+     {\textbf{Backend API}\\ \scriptsize Python FastAPI (MVC)\\ \scriptsize pencarian \& notifikasi};
+  \actor{(5.2,-6.6)}{user}{Petugas / Pengguna}
+
+  \draw[flow] (sensor) -- node[lbl]{publish} (broker);
+  \draw[flow] (broker) -- node[lbl]{subscribe} (bridge);
+  \draw[flow] (bridge) -- node[lbl, right=2pt, fill=none]{simpan log,\\perbarui status,\\notifikasi} (db);
+  \draw[flow] (db) -- node[lbl]{data riwayat\\+ realtime} (dash);
+  \draw[flow] (broker) -- node[lbl]{subscribe\\langsung} (dash);
+  \draw[flow, <->] (dash) -- node[lbl]{HTTP\\REST/JSON} (api);
+  \draw[flow, <->] ($(user)+(0,0.55)$) -- node[lbl, right=2pt, fill=none]{browser} (dash);
+\end{tikzpicture}
+\caption{Arsitektur umum PeatGuard}
+\label{fig:arsitektur}
+\end{figure}
+
+\subsection{Penjelasan Komponen}
+\begin{table}[H]
+\centering
+\caption{Peran tiap komponen}
+\label{tab:komponen}
+\begin{tabularx}{\linewidth}{@{}lL@{}}
+\toprule
+\textbf{Komponen} & \textbf{Peran} \\
+\midrule
+Perangkat Sensor & Mengukur kondisi tanah dan mengirim angka ke \textit{broker} MQTT. Satu titik pantau mengirim 3 topik (kelembapan, pH, suhu), jadi total ada 9 topik. \\
+Broker MQTT & Menerima pesan dari sensor dan meneruskannya ke \textit{bridge worker} dan \textit{dashboard}. Diakses lewat WebSocket aman (\kode{wss://}). \\
+Bridge Worker & Berjalan 24 jam. Menyimpan setiap pesan ke Supabase, menghitung status risiko, dan membuat notifikasi saat kondisi kritis. Ini membuat data tetap tersimpan walaupun tidak ada yang membuka \textit{dashboard}. \\
+Supabase & Basis data utama: menyimpan data titik sensor, riwayat pengukuran, dan notifikasi. Fitur \textit{Realtime} memberi tahu \textit{dashboard} setiap ada baris baru. \\
+Dashboard Web & Antarmuka bagi petugas: ringkasan, peta, kondisi lahan, peringatan, riwayat \& grafik, serta laporan CSV. \\
+Backend API & Melayani fitur \textbf{pencarian} (sensor dan halaman) dan \textbf{notifikasi} (daftar, tandai dibaca). Dirancang dengan pola MVC. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Teknologi yang Digunakan}
+\begin{table}[H]
+\centering
+\caption{Daftar teknologi}
+\label{tab:teknologi}
+\begin{tabularx}{\linewidth}{@{}llL@{}}
+\toprule
+\textbf{Bagian} & \textbf{Teknologi} & \textbf{Kegunaan} \\
+\midrule
+Backend      & Python, FastAPI $\geq$ 0.100      & Kerangka kerja (\textit{framework}) API. \\
+             & Uvicorn $\geq$ 0.20               & Server untuk menjalankan FastAPI (port 8000). \\
+             & Pydantic $\geq$ 2.0               & Validasi \& bentuk data (Model). \\
+\midrule
+Frontend     & React 19, React Router 8          & Membangun halaman \textit{dashboard} (dengan \textit{server-side rendering}). \\
+             & Tailwind CSS                      & Tampilan/gaya antarmuka. \\
+             & Leaflet                           & Peta interaktif sebaran sensor. \\
+             & mqtt.js                           & Klien MQTT di \textit{browser} dan di \textit{bridge}. \\
+             & supabase-js                       & Klien basis data \& \textit{realtime}. \\
+             & Vite, TypeScript                  & Alat \textit{build} dan pemeriksaan tipe. \\
+\midrule
+Data         & Supabase (PostgreSQL)             & Penyimpanan data, keamanan baris (RLS), \textit{realtime}. \\
+\midrule
+Infrastruktur& Docker (Node 24 Alpine)           & Mengemas \textit{dashboard} agar mudah dipasang (port 3000). \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% =====================================================================
+\section{Pemodelan Sistem dengan UML}
+% =====================================================================
+
+Bagian ini menggambarkan sistem dari beberapa sudut pandang memakai diagram UML.
+Setiap diagram dilengkapi penjelasan singkat cara membacanya.
+
+% ---------------------------------------------------------------------
+\subsection{Use Case Diagram}
+% ---------------------------------------------------------------------
+\textit{Use case diagram} menjawab pertanyaan: \textbf{siapa melakukan apa} terhadap sistem.
+Ada tiga aktor: \textbf{Petugas} (manusia), \textbf{Perangkat Sensor}, dan
+\textbf{Bridge Worker} (program otomatis).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  % batas sistem
+  \draw[umldraw, thick] (2.0,0.9) rectangle (10.6,-10.4);
+  \node[font=\small\bfseries, anchor=north] at (6.3,0.85) {Sistem PeatGuard};
+
+  \node[usecase] (uc1)  at (6.3,0.0)   {Melihat ringkasan dashboard};
+  \node[usecase] (uc2)  at (6.3,-0.95) {Melihat peta sebaran sensor};
+  \node[usecase] (uc3)  at (6.3,-1.9)  {Melihat kondisi fisik \& kimia lahan};
+  \node[usecase] (uc4)  at (6.3,-2.85) {Melihat peringatan dini};
+  \node[usecase] (uc5)  at (6.3,-3.8)  {Melihat riwayat \& grafik tren};
+  \node[usecase] (uc6)  at (6.3,-4.75) {Mengunduh laporan (CSV)};
+  \node[usecase] (uc7)  at (6.3,-5.7)  {Mencari sensor / halaman};
+  \node[usecase] (uc8)  at (6.3,-6.65) {Membaca \& menandai notifikasi};
+  \node[usecase] (uc9)  at (6.3,-7.6)  {Mengirim data telemetri};
+  \node[usecase] (uc10) at (6.3,-8.55) {Menyimpan data ke basis data};
+  \node[usecase] (uc11) at (6.3,-9.7)  {Menentukan status risiko};
+
+  \actor{(0,-3.4)}{petugas}{Petugas}
+  \actor{(12.6,-6.9)}{sensor}{Perangkat\\Sensor}
+  \actor{(12.6,-9.9)}{bridge}{Bridge\\Worker}
+
+  \foreach \u in {uc1,uc2,uc3,uc4,uc5,uc6,uc7,uc8}
+     \draw[assoc] (petugas) -- (\u.west);
+  \draw[assoc] (sensor) -- (uc9.east);
+  \draw[assoc] (bridge) -- (uc10.east);
+  \draw[dep] (uc10) -- node[lbl, right=1pt, fill=none]{\guillemotleft include\guillemotright} (uc11);
+\end{tikzpicture}
+\caption{Use case diagram PeatGuard}
+\label{fig:usecase}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Penjelasan use case}
+\label{tab:usecase}
+\begin{tabularx}{\linewidth}{@{}lL@{}}
+\toprule
+\textbf{Use case} & \textbf{Penjelasan} \\
+\midrule
+Melihat ringkasan dashboard & Melihat kartu angka terbaru tiap titik, status koneksi MQTT \& Supabase, dan 9 topik telemetri. \\
+Melihat peta sebaran sensor & Melihat posisi titik pantau di peta Leaflet beserta warna statusnya. \\
+Melihat kondisi lahan & Melihat rata-rata kelembapan, pH, suhu, dan tabel rincian per titik. \\
+Melihat peringatan dini & Melihat titik yang berstatus Waspada/Kritis beserta alasannya. \\
+Melihat riwayat \& tren & Melihat grafik naik-turun nilai sensor dan tabel log (bisa dicari \& diurutkan). \\
+Mengunduh laporan & Mengekspor riwayat data menjadi berkas CSV. \\
+Mencari sensor / halaman & Mengetik kata kunci (mis. ``waspada'', ``PG-002'', ``peta'') pada kolom pencarian. \\
+Membaca notifikasi & Membuka daftar notifikasi, menandai satu atau semua sebagai sudah dibaca. \\
+Mengirim data telemetri & Sensor mengirim angka hasil ukur ke \textit{broker} MQTT. \\
+Menyimpan data & \textit{Bridge} menyimpan data ke Supabase dan \textbf{selalu} menyertakan penentuan status risiko (\guillemotleft include\guillemotright). \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------------
+\subsection{Activity Diagram: Alur Data Sensor}
+% ---------------------------------------------------------------------
+\textit{Activity diagram} menggambarkan \textbf{urutan langkah} dari satu proses,
+termasuk percabangan keputusan. Gambar~\ref{fig:activity} memperlihatkan perjalanan
+satu pesan sensor sampai tampil di \textit{dashboard}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=0.55cm]
+  \node[startnode] (s) {};
+  \node[action, below=of s] (a1) {Sensor mengukur kelembapan, pH, atau suhu};
+  \node[action, below=of a1] (a2) {Sensor mengirim angka ke topik MQTT\\ \scriptsize contoh: \kode{sensor/soil/moisture1}};
+  \node[action, below=of a2] (a3) {Bridge Worker menerima pesan};
+  \node[decision, below=of a3] (d1) {Angka \& nomor\\titik valid?};
+  \node[action, below=0.7cm of d1] (a4) {Perbarui nilai terakhir titik tersebut\\(cache)};
+  \node[action, below=of a4] (a5) {Hitung status risiko \& alasannya};
+  \node[action, below=of a5] (a6) {Simpan ke \kode{sensor\_logs}\\ dan perbarui tabel \kode{sensors}};
+  \node[decision, below=of a6] (d2) {Status\\kritis?};
+  \node[action, right=1.2cm of d2, minimum width=3.6cm, text width=3.4cm] (a7) {Buat catatan di \kode{notifications}};
+  \coordinate[below=0.6cm of d2] (m);
+  \node[action, below=0.5cm of m] (a8) {Dashboard menerima data baru (realtime) dan memperbarui tampilan};
+  \node[endnode, below=of a8] (e) {};
+
+  \node[action, left=1.2cm of d1, minimum width=2.6cm, text width=2.4cm] (x) {Abaikan pesan};
+  \node[endnode, below=0.5cm of x] (ex) {};
+
+  \draw[flow] (s) -- (a1);
+  \draw[flow] (a1) -- (a2);
+  \draw[flow] (a2) -- (a3);
+  \draw[flow] (a3) -- (d1);
+  \draw[flow] (d1) -- node[lbl, right]{ya} (a4);
+  \draw[flow] (d1) -- node[lbl, above]{tidak} (x);
+  \draw[flow] (x) -- (ex);
+  \draw[flow] (a4) -- (a5);
+  \draw[flow] (a5) -- (a6);
+  \draw[flow] (a6) -- (d2);
+  \draw[flow] (d2) -- node[lbl, above]{ya} (a7);
+  \draw[thick, draw=umldraw] (d2) -- node[lbl, right]{tidak} (m);
+  \draw[thick, draw=umldraw] (a7) |- (m);
+  \draw[flow] (m) -- (a8);
+  \draw[flow] (a8) -- (e);
+\end{tikzpicture}
+\caption{Activity diagram alur data dari sensor ke dashboard}
+\label{fig:activity}
+\end{figure}
+
+% ---------------------------------------------------------------------
+\subsection{Sequence Diagram: Pengiriman Telemetri}
+% ---------------------------------------------------------------------
+\textit{Sequence diagram} menunjukkan \textbf{siapa berbicara kepada siapa, dan dalam urutan apa}.
+Waktu berjalan dari atas ke bawah. Panah penuh adalah permintaan/pesan, panah putus-putus adalah balasan
+atau pemberitahuan.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  \foreach \x/\n/\t in {0/S/Sensor, 3.1/B/Broker\\MQTT, 6.2/W/Bridge\\Worker, 9.3/D/Supabase, 12.4/F/Dashboard}{
+    \node[lifehead] (\n) at (\x,0) {\t};
+    \draw[dashed, draw=umldraw!70] (\n.south) -- (\x,-12.2);
+  }
+  % aktivasi
+  \fill[umlfill, draw=umldraw] (6.1,-1.3) rectangle (6.3,-8.6);
+  \fill[umlfill, draw=umldraw] (12.3,-2.1) rectangle (12.5,-4.4);
+
+  \draw[msg] (0,-1.0) -- node[msglbl]{1: publish(\kode{temp2}, 33.7)} (3.1,-1.0);
+  \draw[msg] (3.1,-1.5) -- node[msglbl]{2: teruskan pesan} (6.1,-1.5);
+  \draw[msg] (3.1,-2.3) -- node[msglbl, pos=0.78]{2a: teruskan pesan} (12.3,-2.3);
+  % self call dashboard (label di kiri)
+  \draw[msg] (12.3,-2.9) -- ++(-0.6,0) -- ++(0,-0.4) -- ++(0.6,0);
+  \node[font=\scriptsize, anchor=east, align=right] at (11.6,-3.1) {2b: hitung status, perbarui kartu};
+  \draw[msg] (12.3,-4.1) -- node[msglbl]{2c: simpan log (dari browser)} (9.3,-4.1);
+
+  % self call bridge
+  \draw[msg] (6.3,-4.9) -- ++(0.6,0) -- ++(0,-0.4) -- ++(-0.6,0);
+  \node[font=\scriptsize, anchor=west] at (7.0,-5.1) {3: evaluateStatus()};
+  \draw[msg] (6.3,-6.0) -- node[msglbl]{4: insert \kode{sensor\_logs}} (9.3,-6.0);
+  \draw[msg] (6.3,-6.8) -- node[msglbl]{5: update \kode{sensors}} (9.3,-6.8);
+
+  % frame opt
+  \draw[umldraw, thick] (5.5,-7.2) rectangle (10.2,-8.9);
+  \node[draw=umldraw, fill=white, font=\scriptsize\bfseries, anchor=north west, inner sep=2pt] at (5.5,-7.2) {opt};
+  \node[font=\scriptsize, anchor=north west] at (6.4,-7.25) {[status = kritis]};
+  \draw[msg] (6.3,-8.3) -- node[msglbl]{6: insert \kode{notifications}} (9.3,-8.3);
+
+  \fill[umlfill, draw=umldraw] (12.3,-9.5) rectangle (12.5,-11.2);
+  \draw[ret] (9.3,-9.7) -- node[msglbl]{7: event INSERT} (12.3,-9.7);
+  \draw[msg] (12.3,-10.3) -- ++(-0.6,0) -- ++(0,-0.4) -- ++(0.6,0);
+  \node[font=\scriptsize, anchor=east, align=right] at (11.6,-10.5) {8: perbarui tabel \& grafik riwayat};
+\end{tikzpicture}
+\caption{Sequence diagram pengiriman dan penyimpanan data telemetri}
+\label{fig:seq-telemetri}
+\end{figure}
+
+\textbf{Cara membaca:} sensor mengirim satu angka (langkah 1). \textit{Broker} meneruskannya ke
+\textit{bridge} (2) \textbf{dan} langsung ke \textit{dashboard} yang sedang dibuka (2a), sehingga angka di layar
+berubah seketika (2b). \textit{Bridge} menghitung status (3), menyimpan ke basis data (4--5), dan membuat
+notifikasi jika kritis (6). Supabase kemudian memberi kabar ke \textit{dashboard} bahwa ada baris riwayat baru (7--8).
+
+\begin{catatan}[Perhatian]
+Pada langkah 2c, \textit{dashboard} yang terbuka di \textit{browser} juga ikut menyimpan log ke Supabase.
+Akibatnya, satu pesan sensor bisa tercatat \textbf{lebih dari satu kali} (sekali oleh \textit{bridge},
+dan sekali oleh setiap \textit{browser} yang terbuka). Lihat Bagian~\ref{sec:temuan}.
+\end{catatan}
+
+% ---------------------------------------------------------------------
+\subsection{Sequence Diagram: Pencarian dan Notifikasi}
+% ---------------------------------------------------------------------
+Fitur pencarian dan notifikasi di \textit{header dashboard} dilayani oleh \textit{backend} FastAPI.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  \actor{(0,0.1)}{p}{}
+  \node[font=\footnotesize] at (0,-0.75) {Petugas};
+  \foreach \x/\n/\t in {3.4/F/Dashboard\\(Header), 6.8/V/View\\(Router), 10.2/C/Controller, 13.2/M/Model}{
+    \node[lifehead, minimum width=2.3cm] (\n) at (\x,0) {\t};
+  }
+  \foreach \x in {0,3.4,6.8,10.2,13.2}
+    \draw[dashed, draw=umldraw!70] (\x,-1.0) -- (\x,-11.4);
+
+  \node[font=\scriptsize\bfseries, anchor=west] at (-0.4,-1.3) {A. Pencarian};
+  \draw[msg] (0,-1.8) -- node[msglbl]{1: ketik ``waspada''} (3.4,-1.8);
+  \draw[msg] (3.4,-2.5) -- node[msglbl]{2: GET \kode{/api/search?q=waspada}} (6.8,-2.5);
+  \draw[msg] (6.8,-3.1) -- node[msglbl]{3: search(q)} (10.2,-3.1);
+  \draw[msg] (10.2,-3.7) -- node[msglbl]{4: cocokkan sensor\\\& halaman} (13.2,-3.7);
+  \draw[ret] (10.2,-4.3) -- node[msglbl]{5: SearchResponse} (6.8,-4.3);
+  \draw[ret] (6.8,-4.9) -- node[msglbl]{6: JSON hasil} (3.4,-4.9);
+  \draw[ret] (3.4,-5.5) -- node[msglbl]{7: tampilkan daftar hasil} (0,-5.5);
+
+  \node[font=\scriptsize\bfseries, anchor=west] at (-0.4,-6.3) {B. Tandai notifikasi dibaca};
+  \draw[msg] (0,-6.8) -- node[msglbl]{8: klik notifikasi} (3.4,-6.8);
+  \draw[msg] (3.4,-7.5) -- node[msglbl]{9: POST \kode{/api/notifications/\{id\}/read}} (6.8,-7.5);
+  \draw[msg] (6.8,-8.1) -- node[msglbl]{10: mark\_as\_read(id)} (10.2,-8.1);
+  \draw[msg] (10.2,-8.7) -- node[msglbl]{11: is\_read = true} (13.2,-8.7);
+  \draw[ret] (10.2,-9.3) -- node[msglbl]{12: MarkReadResponse} (6.8,-9.3);
+  \draw[ret] (6.8,-9.9) -- node[msglbl]{13: JSON} (3.4,-9.9);
+  \draw[ret] (3.4,-10.6) -- node[msglbl]{14: buka halaman terkait} (0,-10.6);
+\end{tikzpicture}
+\caption{Sequence diagram fitur pencarian dan notifikasi}
+\label{fig:seq-api}
+\end{figure}
+
+\begin{catatan}[Mekanisme cadangan (\textit{fallback})]
+Jika \textit{backend} tidak menjawab dalam 2 detik, \textit{dashboard} tetap berfungsi:
+pencarian dilakukan langsung di \textit{browser} dan notifikasi memakai data contoh bawaan.
+Daftar notifikasi juga diperbarui otomatis setiap 10 detik (\textit{polling}).
+\end{catatan}
+
+% ---------------------------------------------------------------------
+\subsection{Class Diagram: Backend (Pola MVC)}
+% ---------------------------------------------------------------------
+\textit{Backend} memakai pola MVC. Pembagiannya:
+\begin{itemize}
+  \item \textbf{View} (\kode{app/views}) -- pintu masuk HTTP; hanya menerima permintaan dan meneruskannya.
+  \item \textbf{Controller} (\kode{app/controllers}) -- tempat logika: mencari, menghitung, mengubah data.
+  \item \textbf{Model} (\kode{app/models}) -- bentuk data yang dipakai dan dikembalikan (Pydantic).
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  \node[umlclass=5.6cm, anchor=north] (sv) at (0,0)
+    {\guillemotleft router\guillemotright\ \textbf{search\_view}
+     \nodepart{second} prefix = "/api/search"
+     \nodepart{third} + search\_endpoint(q): SearchResponse};
+  \node[umlclass=5.8cm, anchor=north] (sc) at (0,-2.5)
+    {\textbf{SearchController}
+     \nodepart{second} + SENSORS\_DATA: List[SensorModel]\\ + PAGES\_DATA: List[dict]
+     \nodepart{third} + search(query: str): SearchResponse};
+  \node[umlclass=4.4cm, anchor=north] (sm) at (-4.0,-5.6)
+    {\textbf{SensorModel}
+     \nodepart{second} + id: str\\ + name: str\\ + region: str\\ + lat, lng: float\\ + status: str\\ + moisture: float\\ + ph: float\\ + temperature: float\\ + water\_level: float?\\ + last\_reading: str
+     \nodepart{third} \textit{(tidak ada method)}};
+  \node[umlclass=4.6cm, anchor=north] (sr) at (4.0,-5.6)
+    {\textbf{SearchResponse}
+     \nodepart{second} + query: str\\ + total\_results: int\\ + results: List[SearchResultItem]
+     \nodepart{third} \textit{(tidak ada method)}};
+  \node[umlclass=4.6cm, anchor=north] (si) at (4.0,-9.4)
+    {\textbf{SearchResultItem}
+     \nodepart{second} + id: str\\ + title: str\\ + category: str\\ + subtitle: str\\ + status: str?\\ + url: str
+     \nodepart{third} \textit{(tidak ada method)}};
+
+  \draw[dep] (sv) -- node[lbl, right=2pt, fill=none]{memanggil} (sc);
+  \draw[assoc, {Diamond[open, length=3mm]}-] ($(sc.south)+(-2.0,0)$) -- ++(0,-0.7) -| node[lbl, pos=0.8, right=2pt]{1..*} (sm.north);
+  \draw[dep] ($(sc.south)+(2.0,0)$) -- ++(0,-0.7) -| node[lbl, pos=0.8, left=2pt]{membuat} (sr.north);
+  \draw[assoc, {Diamond[length=3mm]}-] (sr.south) -- node[lbl, right=2pt, fill=none]{0..*} (si.north);
+\end{tikzpicture}
+\caption{Class diagram fitur pencarian (backend)}
+\label{fig:class-search}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  \node[umlclass=7.4cm, anchor=north] (nv) at (-2.2,0)
+    {\guillemotleft router\guillemotright\ \textbf{notification\_view}
+     \nodepart{second} prefix = "/api/notifications"
+     \nodepart{third} + get\_notifications(): NotificationListResponse\\
+                      + mark\_as\_read(notif\_id): MarkReadResponse\\
+                      + mark\_all\_as\_read(): MarkReadResponse\\
+                      + create\_notification(req): NotificationModel};
+  \node[umlclass=4.0cm, anchor=north] (cr) at (5.0,0)
+    {\textbf{CreateNotification-\\Request}
+     \nodepart{second} + title: str\\ + message: str\\ + type: str = "info"\\ + sensor\_id: str?\\ + url: str = "/"
+     \nodepart{third} \textit{(tidak ada method)}};
+  \node[umlclass=7.4cm, anchor=north] (nc) at (-2.2,-3.9)
+    {\textbf{NotificationController}
+     \nodepart{second} - \_notifications: List[NotificationModel] \textit{(di memori)}
+     \nodepart{third} + get\_all(): NotificationListResponse\\
+                      + mark\_as\_read(notif\_id: str): MarkReadResponse\\
+                      + mark\_all\_as\_read(): MarkReadResponse\\
+                      + add\_notification(...): NotificationModel};
+  \node[umlclass=3.9cm, anchor=north] (nm) at (-4.6,-8.2)
+    {\textbf{NotificationModel}
+     \nodepart{second} + id: str\\ + title: str\\ + message: str\\ + type: str\\ + timestamp: str\\ + created\_at: datetime\\ + is\_read: bool\\ + sensor\_id: str?\\ + url: str
+     \nodepart{third} \textit{(tidak ada method)}};
+  \node[umlclass=4.2cm, anchor=north] (nl) at (0.6,-8.2)
+    {\textbf{NotificationListResponse}
+     \nodepart{second} + unread\_count: int\\ + total\_count: int\\ + notifications: List[...]
+     \nodepart{third} \textit{(tidak ada method)}};
+  \node[umlclass=3.6cm, anchor=north] (mr) at (5.2,-8.2)
+    {\textbf{MarkReadResponse}
+     \nodepart{second} + success: bool\\ + message: str\\ + unread\_count: int
+     \nodepart{third} \textit{(tidak ada method)}};
+
+  \draw[dep] (nv) -- node[lbl, right=2pt, fill=none]{memanggil} (nc);
+  \draw[dep] (nv.east) -- node[lbl, above=2pt, fill=none]{memakai} (cr.west |- nv.east);
+  \draw[assoc, {Diamond[open, length=3mm]}-] (nc.south -| nm.north) -- node[lbl, right=2pt, fill=none]{0..*} (nm.north);
+  \draw[dep] (nc.south -| nl.north) -- node[lbl, right=2pt, fill=none]{membuat} (nl.north);
+  \draw[dep] (nc.east |- 0,-6.0) -| node[lbl, pos=0.3, above=2pt, fill=none]{membuat} (mr.north);
+  \draw[assoc, {Diamond[length=3mm]}-] (nl.west) -- node[lbl, below=1pt, fill=none]{0..*} (nm.east |- nl.west);
+\end{tikzpicture}
+\caption{Class diagram fitur notifikasi (backend)}
+\label{fig:class-notif}
+\end{figure}
+
+\textbf{Arti simbol:} panah putus-putus berarti ``memanggil/membuat'';
+belah ketupat kosong berarti ``memiliki kumpulan'' (agregasi);
+belah ketupat penuh berarti ``terdiri dari'' (komposisi);
+angka seperti \kode{0..*} berarti ``nol atau lebih''.
+
+% ---------------------------------------------------------------------
+\subsection{Component Diagram: Dashboard (Frontend)}
+% ---------------------------------------------------------------------
+Gambar~\ref{fig:komponen} menunjukkan susunan bagian-bagian kode \textit{dashboard}.
+Kunci utamanya adalah \textbf{SensorContext}: satu ``pusat data'' yang dipakai bersama oleh semua halaman,
+sehingga koneksi MQTT dan Supabase cukup dibuat sekali.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  \node[umlbox, text width=5cm] (root) at (0,0) {\guillemotleft component\guillemotright\\\textbf{root.jsx} (App)};
+  \node[umlbox, text width=5cm] (ctx) at (0,-1.8) {\guillemotleft component\guillemotright\\\textbf{SensorContext}\\\scriptsize (SensorProvider, useSensorData)};
+
+  \node[umlbox, text width=3.0cm] (lib) at (-4.4,-4.2) {\guillemotleft module\guillemotright\\\textbf{lib/supabase.js}\\\scriptsize ambil \& simpan data};
+  \node[umlbox, text width=3.0cm] (data) at (0,-4.2) {\guillemotleft module\guillemotright\\\textbf{data/sensors.js}\\\scriptsize data awal \& ambang batas};
+  \node[umlbox, text width=3.0cm] (mq) at (4.4,-4.2) {\guillemotleft library\guillemotright\\\textbf{mqtt.js}\\\scriptsize klien WebSocket};
+
+  \node[umlbox, text width=3.0cm] (sb) at (-4.4,-6.3) {\guillemotleft external\guillemotright\\\textbf{Supabase}};
+  \node[umlbox, text width=3.0cm] (br) at (4.4,-6.3) {\guillemotleft external\guillemotright\\\textbf{Broker MQTT}};
+
+  \node[umlbox, text width=11.0cm, align=left, font=\footnotesize] (pages) at (0,-8.6)
+    {\textbf{Halaman (routes)}\\[2pt]
+     \kode{home.jsx}\ $\cdot$\ \kode{riwayat.jsx}\ $\cdot$\ \kode{peta-sensor.jsx}\ $\cdot$\
+     \kode{kondisi-lahan.jsx}\ $\cdot$\ \kode{peringatan.jsx}\ $\cdot$\ \kode{laporan.jsx}};
+  \node[umlbox, text width=11.0cm, align=left, font=\footnotesize] (comp) at (0,-10.7)
+    {\textbf{Komponen UI (components)}\\[2pt]
+     \kode{DashboardFrame}\ $\cdot$\ \kode{Sidebar}\ $\cdot$\ \kode{MainMenu}\ $\cdot$\
+     \kode{SensorMap}\ $\cdot$\ \kode{DataTable}\ $\cdot$\ \kode{ThresholdReferenceCard}\ $\cdot$\ \kode{Footer}};
+  \node[umlbox, text width=3.4cm] (api) at (0,-12.8) {\guillemotleft external\guillemotright\\\textbf{Backend FastAPI}};
+
+  \draw[dep] (root) -- node[lbl, right=2pt, fill=none]{membungkus} (ctx);
+  \draw[dep] (ctx) -- (lib);
+  \draw[dep] (ctx) -- (data);
+  \draw[dep] (ctx) -- (mq);
+  \draw[dep] (lib) -- (sb);
+  \draw[dep] (mq) -- (br);
+  \draw[dep] (pages.west) -- ++(-0.6,0) |- node[lbl, pos=0.25, rotate=90]{useSensorData()} (ctx.west);
+  \draw[dep] (pages) -- node[lbl, right=2pt, fill=none]{memakai} (comp);
+  \draw[dep] (comp) -- node[lbl, right=2pt, fill=none]{\kode{DashboardFrame}: pencarian \& notifikasi} (api);
+\end{tikzpicture}
+\caption{Component diagram dashboard}
+\label{fig:komponen}
+\end{figure}
+
+% ---------------------------------------------------------------------
+\subsection{State Diagram: Status Titik Pantau}
+% ---------------------------------------------------------------------
+Setiap titik pantau selalu berada di salah satu dari tiga keadaan. Keadaan berubah otomatis
+setiap kali ada nilai sensor baru. Singkatan: \textbf{K} = kelembapan (\%), \textbf{S} = suhu (\textdegree C).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  \node[startnode] (st) at (-6.6,0) {};
+  \node[state] (n) at (-3.6,0) {\textbf{Aman}\\\scriptsize (normal)};
+  \node[state] (w) at (3.6,0) {\textbf{Waspada}\\\scriptsize (warning)};
+  \node[state] (c) at (0,-4.4) {\textbf{Kritis}\\\scriptsize (critical)};
+
+  \draw[flow] (st) -- (n);
+  \draw[flow] ([yshift=4pt]n.east) -- node[lbl, above=2pt, fill=none]{K $<$ 60 atau S $\geq$ 32\\atau pH di luar 3,2--5,5} ([yshift=4pt]w.west);
+  \draw[flow] ([yshift=-4pt]w.west) -- node[lbl, below=2pt, fill=none]{semua kembali normal} ([yshift=-4pt]n.east);
+  \draw[flow] ([xshift=-8pt]n.south) -- node[lbl, left=3pt, fill=none]{K $<$ 40 atau\\S $\geq$ 35} ([xshift=-8pt]c.north west);
+  \draw[flow] ([xshift=8pt]c.north west) -- node[lbl, right=3pt, fill=none, pos=0.4]{semua\\normal} ([xshift=8pt]n.south);
+  \draw[flow] ([xshift=8pt]w.south) -- node[lbl, right=3pt, fill=none]{K $<$ 40 atau\\S $\geq$ 35} ([xshift=8pt]c.north east);
+  \draw[flow] ([xshift=-8pt]c.north east) -- node[lbl, left=3pt, fill=none, pos=0.4]{K $\geq$ 40\\dan S $<$ 35} ([xshift=-8pt]w.south);
+\end{tikzpicture}
+\caption{State diagram status risiko titik pantau}
+\label{fig:state}
+\end{figure}
+
+% ---------------------------------------------------------------------
+\subsection{Deployment Diagram}
+% ---------------------------------------------------------------------
+\textit{Deployment diagram} menunjukkan \textbf{di mana} setiap program dijalankan.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  \node[devnode=3.4cm] (dev) at (-5.0,0)
+    {\guillemotleft device\guillemotright\\\textbf{Perangkat Sensor IoT}\\[2pt]\scriptsize 3 node lapangan};
+  \node[devnode=3.4cm] (brk) at (0,0)
+    {\guillemotleft server\guillemotright\\\textbf{Server Broker MQTT}\\[2pt]\scriptsize WebSocket TLS (wss)};
+  \node[devnode=3.4cm] (cloud) at (5.0,0)
+    {\guillemotleft cloud\guillemotright\\\textbf{Supabase}\\[2pt]\scriptsize PostgreSQL + Realtime};
+
+  \node[devnode=4.8cm] (app) at (-3.0,-3.6)
+    {\guillemotleft server\guillemotright\\\textbf{Server Aplikasi}\\[2pt]
+     \scriptsize Docker \kode{node:24-alpine}: \kode{react-router-serve} (port 3000)\\
+     \scriptsize Proses Node.js: \textit{bridge worker} (\kode{npm run bridge})};
+  \node[devnode=3.8cm] (be) at (3.6,-3.6)
+    {\guillemotleft server\guillemotright\\\textbf{Server Backend}\\[2pt]
+     \scriptsize Python + Uvicorn, FastAPI (port 8000)\\
+     \scriptsize Notifikasi di memori};
+  \node[devnode=3.4cm] (br) at (0,-7.2)
+    {\guillemotleft device\guillemotright\\\textbf{Browser Pengguna}\\[2pt]\scriptsize PC / laptop / ponsel};
+
+  \draw[assoc] (dev) -- node[lbl]{MQTT} (brk);
+  \draw[assoc] (brk.south) -- node[lbl]{wss} (app.north east);
+  \draw[assoc] (cloud.south west) -- node[lbl, pos=0.4]{HTTPS} (app.north east);
+  \draw[assoc] (br) -- node[lbl]{HTTP :3000} (app);
+  \draw[assoc] (br) -- node[lbl]{HTTP :8000} (be);
+  \draw[assoc] (br.west) -- (-7.4,-7.2) |- node[lbl, pos=0.25, rotate=90]{wss (langsung ke broker)} (0,1.4) -- (brk.north);
+  \draw[assoc] (br.east) -- (7.4,-7.2) |- node[lbl, pos=0.25, rotate=90]{HTTPS + Realtime} (cloud.east);
+\end{tikzpicture}
+\caption{Deployment diagram (usulan penempatan)}
+\label{fig:deploy}
+\end{figure}
+
+Garis di sisi kiri dan kanan gambar menandakan bahwa \textit{browser} pengguna juga terhubung
+\textbf{langsung} ke \textit{broker} MQTT (wss) dan ke Supabase (HTTPS + \textit{Realtime}).
+
+% =====================================================================
+\section{Rancangan Basis Data}
+% =====================================================================
+
+Basis data berada di Supabase (PostgreSQL) dengan tiga tabel. Hubungan antartabel ditunjukkan pada
+\textit{Entity Relationship Diagram} (ERD) berikut.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+  \node[erd=5.0cm, anchor=north] (s) at (0,0)
+    {\textbf{sensors}
+     \nodepart{second}
+     \textbf{PK} id : TEXT\\
+     name : TEXT\\
+     region : TEXT\\
+     latitude : DOUBLE\\
+     longitude : DOUBLE\\
+     last\_moisture : DOUBLE\\
+     last\_ph : DOUBLE\\
+     last\_temperature : DOUBLE\\
+     status : TEXT\\
+     updated\_at : TIMESTAMPTZ};
+  \node[erd=5.0cm, anchor=north] (l) at (8.2,0)
+    {\textbf{sensor\_logs}
+     \nodepart{second}
+     \textbf{PK} id : BIGINT (otomatis)\\
+     created\_at : TIMESTAMPTZ\\
+     \textbf{FK} sensor\_id : TEXT\\
+     sensor\_name : TEXT\\
+     moisture : DOUBLE\\
+     ph : DOUBLE\\
+     temperature : DOUBLE\\
+     latitude : DOUBLE\\
+     longitude : DOUBLE\\
+     status : TEXT\\
+     reason : TEXT};
+  \node[erd=5.0cm, anchor=north] (n) at (0,-6.6)
+    {\textbf{notifications}
+     \nodepart{second}
+     \textbf{PK} id : UUID\\
+     created\_at : TIMESTAMPTZ\\
+     \textbf{FK} sensor\_id : TEXT\\
+     title : TEXT\\
+     message : TEXT\\
+     severity : TEXT\\
+     is\_read : BOOLEAN};
+
+  \draw[assoc] (s.east |- 0,-1.6) -- node[lbl, pos=0.1, above]{1} node[lbl, pos=0.9, above]{N}
+               node[lbl, below=2pt, fill=none]{memiliki} (l.west |- 0,-1.6);
+  \draw[assoc] (s.south) -- node[lbl, pos=0.15, right]{1} node[lbl, pos=0.85, right]{N}
+               node[lbl, left=3pt, fill=none]{memiliki} (n.north);
+\end{tikzpicture}
+\caption{Entity Relationship Diagram (ERD)}
+\label{fig:erd}
+\end{figure}
+
+\textbf{Penjelasan singkat:}
+\begin{itemize}
+  \item \kode{sensors} menyimpan \textbf{data induk} titik pantau beserta nilai \textbf{terakhir}nya (satu baris per titik).
+  \item \kode{sensor\_logs} menyimpan \textbf{seluruh riwayat} pengukuran (satu baris per pesan). Jika sebuah sensor dihapus, lognya ikut terhapus (\kode{ON DELETE CASCADE}).
+  \item \kode{notifications} menyimpan peringatan. Jika sensor dihapus, notifikasi tetap ada tetapi \kode{sensor\_id} dikosongkan (\kode{ON DELETE SET NULL}).
+\end{itemize}
+
+\subsection{Kamus Data}
+
+\begin{table}[H]
+\centering
+\caption{Kamus data tabel \kode{sensors}}
+\label{tab:kd-sensors}
+\begin{tabularx}{\linewidth}{@{}llL@{}}
+\toprule
+\textbf{Kolom} & \textbf{Tipe} & \textbf{Keterangan} \\
+\midrule
+id               & TEXT, PK         & Kode titik pantau, mis. \kode{PG-001}. \\
+name             & TEXT             & Nama titik pantau. \\
+region           & TEXT             & Wilayah / keterangan lokasi. \\
+latitude         & DOUBLE           & Garis lintang. \\
+longitude        & DOUBLE           & Garis bujur. \\
+last\_moisture   & DOUBLE           & Kelembapan terakhir (\%), bawaan 65,0. \\
+last\_ph         & DOUBLE           & pH terakhir, bawaan 4,2. \\
+last\_temperature& DOUBLE           & Suhu terakhir (\textdegree C), bawaan 28,5. \\
+status           & TEXT             & \kode{normal} / \kode{warning} / \kode{critical}. \\
+updated\_at      & TIMESTAMPTZ      & Waktu pembaruan terakhir (UTC). \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Kamus data tabel \kode{sensor\_logs}}
+\label{tab:kd-logs}
+\begin{tabularx}{\linewidth}{@{}llL@{}}
+\toprule
+\textbf{Kolom} & \textbf{Tipe} & \textbf{Keterangan} \\
+\midrule
+id          & BIGINT, PK   & Nomor urut otomatis. \\
+created\_at & TIMESTAMPTZ  & Waktu data dicatat (UTC). Diberi indeks untuk pengurutan cepat. \\
+sensor\_id  & TEXT, FK     & Mengacu ke \kode{sensors.id}. Diberi indeks. \\
+sensor\_name& TEXT         & Nama titik saat data dicatat. \\
+moisture    & DOUBLE       & Kelembapan tanah (\%). \\
+ph          & DOUBLE       & pH tanah. \\
+temperature & DOUBLE       & Suhu tanah (\textdegree C). \\
+latitude, longitude & DOUBLE & Posisi saat pengukuran (boleh kosong). \\
+status      & TEXT         & Wajib salah satu: \kode{normal}, \kode{warning}, \kode{critical}. \\
+reason      & TEXT         & Kalimat penjelasan mengapa status tersebut diberikan. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Kamus data tabel \kode{notifications}}
+\label{tab:kd-notif}
+\begin{tabularx}{\linewidth}{@{}llL@{}}
+\toprule
+\textbf{Kolom} & \textbf{Tipe} & \textbf{Keterangan} \\
+\midrule
+id          & UUID, PK     & ID acak otomatis. \\
+created\_at & TIMESTAMPTZ  & Waktu notifikasi dibuat. \\
+sensor\_id  & TEXT, FK     & Titik pantau terkait (boleh kosong). \\
+title       & TEXT         & Judul, mis. ``BAHAYA: Kondisi Kritis di Baleendah''. \\
+message     & TEXT         & Isi pesan (alasan status). \\
+severity    & TEXT         & \kode{info} / \kode{warning} / \kode{critical}. \\
+is\_read    & BOOLEAN      & Sudah dibaca atau belum, bawaan \kode{false}. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Keamanan Tingkat Baris (RLS) dan Realtime}
+Ketiga tabel mengaktifkan \textit{Row Level Security} (RLS). Kebijakan yang dipasang saat ini:
+
+\begin{table}[H]
+\centering
+\caption{Kebijakan akses (RLS) saat ini}
+\label{tab:rls}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Tabel} & \textbf{Baca} & \textbf{Tambah} & \textbf{Ubah} & \textbf{Hapus} \\
+\midrule
+sensors        & publik & publik & publik & publik \\
+sensor\_logs   & publik & publik & --     & --     \\
+notifications  & publik & publik & publik & --     \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Ketiga tabel juga didaftarkan ke publikasi \kode{supabase\_realtime}, sehingga setiap
+perubahan data dapat langsung ``didengar'' oleh \textit{dashboard}.
+
+% =====================================================================
+\section{Aturan Penentuan Status Risiko}
+% =====================================================================
+
+Inti ``kecerdasan'' PeatGuard adalah aturan sederhana berbasis rujukan ilmiah
+(Huang \& Rein 2015; Usup dkk. 2004; Saharjo \& Nurhayati 2006; PP No.~57 Tahun 2016).
+Aturan yang sama dipakai di \textit{bridge worker} dan di \textit{dashboard}.
+
+\subsection{Tabel Ambang Batas}
+\begin{table}[H]
+\centering
+\caption{Ambang batas parameter sensor}
+\label{tab:ambang}
+\begin{tabularx}{\linewidth}{@{}lccL@{}}
+\toprule
+\textbf{Parameter} & \textbf{Aman} & \textbf{Waspada} & \textbf{Kritis} \\
+\midrule
+Kelembapan tanah (\%) & $\geq 60$ & $40$ -- $59{,}9$ & $< 40$ \\
+Suhu tanah (\textdegree C) & $< 32$ & $32$ -- $34{,}9$ & $\geq 35$ \\
+pH tanah & $3{,}2$ -- $5{,}5$ & $< 3{,}2$ atau $> 5{,}5$ & (tidak dipakai untuk status kritis) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Mengapa angka-angka ini?}
+\begin{itemize}
+  \item \textbf{Kelembapan $<$ 40\%}: gambut sangat kering, bara api mudah menyala dan menjalar
+        (batas \textit{Critical Moisture of Extinction}).
+  \item \textbf{Suhu $\geq$ 35\textdegree C} di kedalaman sensor: tanda kuat adanya bara panas di bawah permukaan.
+  \item \textbf{pH $<$ 3,2}: tanah terlalu kering sehingga mineral pirit teroksidasi.
+        \textbf{pH $>$ 5,5}: kemungkinan ada abu sisa pembakaran.
+\end{itemize}
+
+\subsection{Diagram Alir Keputusan}
+Urutan pemeriksaan penting: kondisi \textbf{kritis} diperiksa lebih dulu, baru \textbf{waspada}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=0.7cm]
+  \node[startnode] (s) {};
+  \node[action, below=of s] (in) {Ambil nilai terbaru:\\ K (kelembapan), S (suhu), pH};
+  \node[decision, below=of in] (d1) {K $<$ 40\\atau S $\geq$ 35 ?};
+  \node[decision, below=1.0cm of d1] (d2) {K $<$ 60 atau S $\geq$ 32\\atau pH $<$ 3,2 atau pH $>$ 5,5 ?};
+  \node[action, below=1.0cm of d2, minimum width=3cm, text width=2.8cm] (ok) {\textbf{AMAN}\\ (normal)};
+  \node[action, right=1.4cm of d1, minimum width=3cm, text width=2.8cm] (kr) {\textbf{KRITIS}\\ (critical)};
+  \node[action, right=0.6cm of d2, minimum width=3cm, text width=2.8cm] (ws) {\textbf{WASPADA}\\ (warning)};
+  \node[endnode, below=of ok] (e) {};
+
+  \draw[flow] (s) -- (in);
+  \draw[flow] (in) -- (d1);
+  \draw[flow] (d1) -- node[lbl, above]{ya} (kr);
+  \draw[flow] (d1) -- node[lbl, right]{tidak} (d2);
+  \draw[flow] (d2) -- node[lbl, above]{ya} (ws);
+  \draw[flow] (d2) -- node[lbl, right]{tidak} (ok);
+  \draw[flow] (ok) -- (e);
+  \draw[flow] (kr.east) -- ++(0.5,0) |- (e.east);
+  \draw[flow] (ws.east) -- ++(0.5,0) |- (e.east);
+\end{tikzpicture}
+\caption{Diagram alir penentuan status risiko}
+\label{fig:flow-status}
+\end{figure}
+
+\subsection{Contoh Perhitungan}
+\begin{table}[H]
+\centering
+\caption{Contoh hasil evaluasi status}
+\label{tab:contoh}
+\begin{tabular}{@{}cccll@{}}
+\toprule
+\textbf{K (\%)} & \textbf{S (\textdegree C)} & \textbf{pH} & \textbf{Status} & \textbf{Alasan utama} \\
+\midrule
+68,4 & 28,5 & 4,2 & Aman    & Semua dalam batas normal \\
+41,8 & 33,7 & 3,8 & Waspada & Kelembapan di zona defisit (40--60\%) \\
+65,0 & 28,0 & 5,9 & Waspada & pH $>$ 5,5 (indikasi abu) \\
+38,5 & 30,0 & 4,0 & Kritis  & Kelembapan di bawah 40\% \\
+62,0 & 36,1 & 4,3 & Kritis  & Suhu $\geq$ 35\textdegree C (indikasi bara) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Potongan kode aturan tersebut (dari \kode{scripts/mqtt\_supabase\_bridge.js}):
+\begin{lstlisting}
+function evaluateStatus(m, t, p) {
+  if (m < 40.0 || t >= 35.0) return "critical";
+  if (m < 60.0 || t >= 32.0 || p < 3.2 || p > 5.5) return "warning";
+  return "normal";
+}
+\end{lstlisting}
+
+% =====================================================================
+\section{Komunikasi MQTT}
+% =====================================================================
+
+\subsection{Daftar Topik}
+Pola topik: \kode{sensor/soil/<parameter><nomor\_titik>}. \textit{Bridge} dan \textit{dashboard}
+berlangganan ke \kode{sensor/soil/\#} (tanda \kode{\#} artinya ``semua topik di bawahnya'').
+
+\begin{table}[H]
+\centering
+\caption{Topik MQTT yang digunakan}
+\label{tab:topik}
+\begin{tabular}{@{}lllc@{}}
+\toprule
+\textbf{Topik} & \textbf{Parameter} & \textbf{Titik} & \textbf{Satuan} \\
+\midrule
+\kode{sensor/soil/moisture1} & Kelembapan & Parongpong & \% \\
+\kode{sensor/soil/ph1}       & pH         & Parongpong & pH \\
+\kode{sensor/soil/temp1}     & Suhu       & Parongpong & \textdegree C \\
+\kode{sensor/soil/moisture2} & Kelembapan & Baleendah  & \% \\
+\kode{sensor/soil/ph2}       & pH         & Baleendah  & pH \\
+\kode{sensor/soil/temp2}     & Suhu       & Baleendah  & \textdegree C \\
+\kode{sensor/soil/moisture3} & Kelembapan & Rancaupas  & \% \\
+\kode{sensor/soil/ph3}       & pH         & Rancaupas  & pH \\
+\kode{sensor/soil/temp3}     & Suhu       & Rancaupas  & \textdegree C \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Format Pesan}
+Sistem menerima dua bentuk pesan:
+
+\textbf{1. Angka biasa} (paling sederhana):
+\begin{lstlisting}
+33.7
+\end{lstlisting}
+
+\textbf{2. JSON} (dapat membawa lokasi dan waktu):
+\begin{lstlisting}
+{
+  "value": 33.7,
+  "latitude": -6.8320,
+  "longitude": 107.5910,
+  "timestamp": "2026-11-23T08:15:00Z",
+  "sensor": "temp2"
+}
+\end{lstlisting}
+
+Jika nama topik tidak mengikuti pola, sistem mencoba membaca jenis parameter dan nomor titik dari
+kolom \kode{sensor}. Pesan yang tidak berisi angka atau tidak dikenali nomor titiknya akan diabaikan.
+
+\begin{catatan}[Catatan penting]
+Satu pesan hanya membawa \textbf{satu} parameter. Karena itu, \textit{bridge} menyimpan nilai terakhir
+setiap parameter (\textit{cache}) agar status bisa dihitung dari kombinasi kelembapan, suhu, dan pH terbaru.
+\end{catatan}
+
+% =====================================================================
+\section{Spesifikasi API Backend}
+% =====================================================================
+
+Alamat dasar: \kode{http://127.0.0.1:8000}. Dokumentasi interaktif otomatis tersedia di
+\kode{/docs} (Swagger UI) setelah server berjalan.
+
+\begin{table}[H]
+\centering
+\caption{Daftar endpoint API}
+\label{tab:api}
+\begin{tabularx}{\linewidth}{@{}llL@{}}
+\toprule
+\textbf{Metode} & \textbf{Endpoint} & \textbf{Fungsi} \\
+\midrule
+GET  & \kode{/}                                   & Cek status layanan. \\
+GET  & \kode{/api/search?q=...}                   & Mencari sensor dan halaman berdasarkan kata kunci. Jika \kode{q} kosong, mengembalikan semua sensor sebagai saran. \\
+GET  & \kode{/api/notifications}                  & Mengambil semua notifikasi beserta jumlah yang belum dibaca. \\
+POST & \kode{/api/notifications}                  & Menambah notifikasi baru. \\
+POST & \kode{/api/notifications/\{id\}/read}      & Menandai satu notifikasi sebagai dibaca. \\
+POST & \kode{/api/notifications/mark-all-read}    & Menandai semua notifikasi sebagai dibaca. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Contoh: Pencarian}
+Permintaan:
+\begin{lstlisting}
+GET /api/search?q=waspada
+\end{lstlisting}
+Jawaban:
+\begin{lstlisting}
+{
+  "query": "waspada",
+  "total_results": 2,
+  "results": [
+    { "id": "PG-002", "title": "Titik Pantau 2 - Sungai Tohor",
+      "category": "sensor", "status": "warning", "url": "/riwayat",
+      "subtitle": "PG-002 · Tebing Tinggi Timur, Riau · 41.8% kelembapan · 3.9 pH" },
+    { "id": "page-peringatan", "title": "Peringatan Dini Lahan",
+      "category": "halaman", "status": null, "url": "/peringatan",
+      "subtitle": "Daftar titik pantau dengan kondisi kritis atau waspada kebakaran" }
+  ]
+}
+\end{lstlisting}
+
+Kata kunci khusus yang dipahami pencarian: \kode{aman} (status normal), \kode{waspada} (warning),
+\kode{bahaya} (critical), \kode{kering} (semua yang tidak normal).
+
+\subsection{Contoh: Menambah Notifikasi}
+Permintaan:
+\begin{lstlisting}
+POST /api/notifications
+Content-Type: application/json
+
+{
+  "title": "Kondisi Gambut Kering (Waspada)",
+  "message": "Titik Pantau 2 mencatat kelembapan 41.8%.",
+  "type": "warning",
+  "sensor_id": "PG-002",
+  "url": "/peringatan"
+}
+\end{lstlisting}
+
+Jawaban berupa objek notifikasi lengkap dengan \kode{id}, \kode{created\_at}, dan \kode{is\_read = false}.
+Nilai \kode{type} yang dikenal: \kode{critical}, \kode{warning}, \kode{info}, \kode{success}.
+
+% =====================================================================
+\section{Halaman Dashboard}
+% =====================================================================
+
+\begin{table}[H]
+\centering
+\caption{Daftar halaman dashboard}
+\label{tab:halaman}
+\begin{tabularx}{\linewidth}{@{}llL@{}}
+\toprule
+\textbf{Menu} & \textbf{Alamat} & \textbf{Isi utama} \\
+\midrule
+Dashboard      & \kode{/}               & Ringkasan angka tiap titik, status koneksi MQTT dan Supabase, 9 topik telemetri, peta mini. \\
+Riwayat Data   & \kode{/riwayat}        & Grafik tren (kelembapan/pH/suhu) dan tabel log yang dapat dicari, diurutkan, dan dipaginasi. \\
+Peta Sensor    & \kode{/peta-sensor}    & Peta Leaflet dengan penanda titik pantau berdasarkan status. \\
+Kondisi Lahan  & \kode{/kondisi-lahan}  & Rata-rata kondisi fisik \& kimia, tabel rincian per titik, kartu rujukan ambang batas. \\
+Peringatan     & \kode{/peringatan}     & Daftar titik berstatus Waspada/Kritis lengkap dengan alasan. \\
+Laporan        & \kode{/laporan}        & Kesimpulan lapangan, daftar titik, dan tombol ekspor CSV. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Sumber Data Riwayat (Urutan Prioritas)}
+Saat \textit{dashboard} dibuka, data riwayat dimuat dengan urutan berikut:
+\begin{enumerate}
+  \item \textbf{Supabase} -- 150 log terbaru. Jika berhasil, status Supabase menjadi ``terhubung''.
+  \item \textbf{Penyimpanan lokal browser} (\kode{localStorage}) -- jika Supabase gagal atau kosong.
+  \item \textbf{Data contoh} -- dibuat otomatis (37 titik waktu tiap 40 menit untuk 3 sensor) jika keduanya kosong.
+\end{enumerate}
+Di \textit{browser}, maksimal 200 log terbaru dipertahankan.
+
+% =====================================================================
+\section{Cara Menjalankan Sistem}
+% =====================================================================
+
+\subsection{Backend (be-peat)}
+\begin{lstlisting}
+cd be-peat
+pip install -r requirements.txt
+python run.py
+# Server berjalan di http://127.0.0.1:8000  (dokumentasi: /docs)
+\end{lstlisting}
+
+\subsection{Basis Data (Supabase)}
+Buka \textit{SQL Editor} di proyek Supabase, lalu jalankan isi berkas
+\kode{dashboard-peat/supabase/schema.sql}. Skrip ini aman dijalankan berulang kali (idempoten):
+membuat tabel, indeks, kebijakan RLS, data awal 3 titik, dan mengaktifkan \textit{Realtime}.
+
+\subsection{Dashboard dan Bridge (dashboard-peat)}
+\begin{lstlisting}
+cd dashboard-peat
+npm install
+npm run dev       # mode pengembangan -> http://localhost:5173
+npm run bridge    # jalankan bridge MQTT -> Supabase (terminal terpisah)
+\end{lstlisting}
+
+\subsection{Produksi dengan Docker}
+\begin{lstlisting}
+docker build -t peatguard-dashboard .
+docker run -p 3000:3000 peatguard-dashboard
+\end{lstlisting}
+\textit{Bridge worker} tidak termasuk di dalam kontainer tersebut, sehingga perlu dijalankan sebagai
+proses/layanan terpisah (misalnya dengan \kode{pm2}, \kode{systemd}, atau kontainer kedua).
+
+% =====================================================================
+\section{Temuan Teknis dan Rekomendasi}
+\label{sec:temuan}
+% =====================================================================
+
+Bagian ini merangkum hal-hal yang perlu diperbaiki sebelum sistem dipakai secara luas.
+Tingkat prioritas: \textbf{T} = tinggi, \textbf{S} = sedang, \textbf{R} = rendah.
+
+\begin{longtable}{@{}p{0.6cm}p{4.6cm}p{8.6cm}@{}}
+\caption{Temuan dan rekomendasi}\label{tab:temuan}\\
+\toprule
+\textbf{Prio.} & \textbf{Temuan} & \textbf{Rekomendasi} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Prio.} & \textbf{Temuan} & \textbf{Rekomendasi} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+T & Kata sandi MQTT dan kunci Supabase ditulis langsung di kode (\kode{SensorContext.jsx}, \kode{mqtt\_supabase\_bridge.js}, \kode{lib/supabase.js}) dan ikut terkirim ke \textit{browser}. &
+Pindahkan ke variabel lingkungan (\kode{.env}); ganti kata sandi MQTT yang sudah terlanjur tersimpan di riwayat Git; buat akun MQTT khusus \textit{dashboard} yang \textbf{hanya boleh membaca} (\textit{subscribe}). \\
+T & Kebijakan RLS mengizinkan siapa pun menambah, mengubah, bahkan menghapus data \kode{sensors} serta menambah log dan notifikasi. &
+Batasi penulisan hanya untuk \textit{bridge} memakai kunci \textit{service role} di sisi server; publik cukup hak baca. \\
+T & Data log tercatat ganda: \textit{bridge} \textbf{dan} setiap \textit{browser} yang terbuka sama-sama menyimpan ke \kode{sensor\_logs}. &
+Jadikan \textit{bridge} satu-satunya penulis. \textit{Dashboard} cukup membaca dan mendengarkan \textit{Realtime}. \\
+S & \textit{Dashboard} memanggil API di \kode{http://127.0.0.1:8000}, dan \textit{backend} hanya mendengarkan di \kode{127.0.0.1}. Ini hanya berfungsi bila \textit{browser} dan \textit{backend} berada di komputer yang sama. &
+Gunakan alamat API yang dapat dikonfigurasi (mis. \kode{VITE\_API\_URL}) dan jalankan Uvicorn di \kode{0.0.0.0} di balik \textit{reverse proxy} HTTPS. \\
+S & Notifikasi di \textit{backend} disimpan di memori: hilang saat server dimatikan dan tidak tersambung dengan tabel \kode{notifications} di Supabase. &
+Hubungkan \kode{NotificationController} ke tabel \kode{notifications} Supabase agar sumber notifikasi hanya satu. \\
+S & Data sensor di \textit{backend} (nama dan wilayah di Riau) berbeda dengan \textit{dashboard} dan basis data (Parongpong, Baleendah, Rancaupas -- Bandung). Data di \textit{backend} juga statis, bukan nilai \textit{realtime}. &
+Ambil data sensor untuk pencarian langsung dari tabel \kode{sensors}. \\
+S & CORS \textit{backend} mengizinkan semua asal (\kode{*}) sekaligus \kode{allow\_credentials}. &
+Batasi ke domain \textit{dashboard} yang resmi. \\
+R & Nilai \kode{type}/\kode{severity} notifikasi tidak seragam: \textit{backend} memakai \kode{success}, sedangkan basis data hanya menerima \kode{info}, \kode{warning}, \kode{critical}. &
+Samakan daftar nilai di semua bagian. \\
+R & Aturan status ditulis ulang di dua tempat (\kode{data/sensors.js} dan \textit{bridge}); dokumen rujukan menyebut ambang pH kritis ($<2{,}8$ / $>6{,}5$) yang belum diterapkan di kode. &
+Satukan aturan dalam satu modul bersama dan putuskan apakah ambang pH kritis akan dipakai. \\
+R & Notifikasi di Supabase dibuat \textbf{setiap} pesan berstatus kritis, sehingga bisa membanjiri tabel. &
+Buat notifikasi hanya saat status \textbf{berubah} menjadi kritis, atau beri jeda waktu minimum. \\
+R & Belum ada pengujian otomatis (\textit{unit test}) maupun autentikasi pengguna \textit{dashboard}. &
+Tambahkan \textit{test} untuk fungsi evaluasi status dan API; tambahkan login (mis. Supabase Auth) bila data bersifat internal. \\
+\end{longtable}
+
+% =====================================================================
+\section{Penutup}
+% =====================================================================
+
+PeatGuard menggabungkan sensor IoT, protokol MQTT, basis data \textit{cloud} dengan fitur \textit{realtime},
+dan \textit{dashboard} web untuk memberikan \textbf{peringatan dini kebakaran lahan gambut}.
+Logika utamanya sederhana dan transparan: tiga parameter tanah dibandingkan dengan ambang batas ilmiah
+untuk menghasilkan status Aman, Waspada, atau Kritis.
+
+Secara fungsional sistem sudah berjalan dari ujung ke ujung. Langkah berikutnya yang disarankan adalah
+memperkuat sisi keamanan (kredensial dan hak akses basis data), menghilangkan pencatatan ganda,
+serta menyatukan sumber data notifikasi dan sensor agar sistem siap digunakan di lapangan secara luas.
+
+\subsection*{Rujukan}
+\begin{enumerate}[label={[\arabic*]}]
+  \item Huang, X., \& Rein, G. (2015). Smouldering combustion of peat in wildfires. \textit{International Journal of Wildland Fire}.
+  \item Usup, A., Hashimoto, Y., Takahashi, H., \& Hayasaka, H. (2004). Combustion characteristics of peat in Central Kalimantan, Indonesia. \textit{Tropics}, 14(1), 1--19.
+  \item Saharjo, B. H., \& Nurhayati, A. D. (2006). Karakteristik Pembakaran dan Suhu Bawah Permukaan Lahan Gambut Terdegradasi. \textit{Jurnal Silvikultur Tropika}, IPB.
+  \item Page, S. E., Rieley, J. O., \& Banks, C. J. (2011). Global and regional importance of the tropical peatland carbon pool. \textit{Global Change Biology}, 17(2), 798--818.
+  \item Peraturan Pemerintah RI No.~57 Tahun 2016 tentang Perlindungan dan Pengelolaan Ekosistem Gambut.
+  \item Dokumentasi resmi: FastAPI, React Router, Supabase, MQTT.js, Leaflet.
+\end{enumerate}
+
+\end{document}
