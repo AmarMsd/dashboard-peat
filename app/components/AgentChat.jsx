@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useAgentSettings } from "../lib/useAgentSettings";
 
-// URL webhook dari node "When chat message received" (Chat Trigger) di n8n.
-// Diisi lewat variabel lingkungan VITE_N8N_CHAT_URL (lihat .env.example).
-const CHAT_URL = import.meta.env.VITE_N8N_CHAT_URL || "";
+// Secara bawaan chat dikirim ke proxy di server dashboard sendiri (/api/chat), yang meneruskannya
+// ke n8n. Ini menghindari masalah CORS dan menyembunyikan URL n8n dari pengunjung.
+// VITE_N8N_CHAT_URL hanya untuk kebutuhan khusus (memanggil n8n langsung dari browser).
+const CHAT_URL = import.meta.env.VITE_N8N_CHAT_URL || "/api/chat";
 const SESSION_KEY = "peatguard_agent_session_v1";
 const MESSAGES_KEY = "peatguard_agent_messages_v1";
 const REQUEST_TIMEOUT_MS = 60000;
@@ -103,17 +104,6 @@ export function AgentChat({ variant = "floating", enabled = true }) {
     setInput("");
     setMessages((prev) => [...prev, { role: "user", text: chatInput }]);
 
-    if (!CHAT_URL) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "error",
-          text: "Chat agent belum dikonfigurasi. Isi VITE_N8N_CHAT_URL di file .env lalu jalankan ulang dashboard.",
-        },
-      ]);
-      return;
-    }
-
     setIsSending(true);
     try {
       const res = await fetch(CHAT_URL, {
@@ -122,7 +112,15 @@ export function AgentChat({ variant = "floating", enabled = true }) {
         body: JSON.stringify({ action: "sendMessage", sessionId: getSessionId(), chatInput }),
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        // Proxy /api/chat mengirim pesan error yang bisa dibaca
+        let detail = `HTTP ${res.status}`;
+        try {
+          const errBody = await res.json();
+          if (errBody?.error) detail = errBody.error;
+        } catch (e) {}
+        throw new Error(detail);
+      }
 
       const contentType = res.headers.get("content-type") || "";
       const data = contentType.includes("application/json") ? await res.json() : await res.text();
@@ -142,7 +140,7 @@ export function AgentChat({ variant = "floating", enabled = true }) {
           role: "error",
           text: isTimeout
             ? "Agent terlalu lama merespons. Coba lagi beberapa saat lagi."
-            : `Gagal menghubungi agent (${err.message}). Pastikan workflow n8n aktif dan domain dashboard diizinkan.`,
+            : `Gagal menghubungi agent (${err.message}). Pastikan workflow n8n aktif dan N8N_CHAT_URL di server benar.`,
         },
       ]);
     } finally {

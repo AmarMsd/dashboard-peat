@@ -67,12 +67,15 @@ Hal lain yang berubah untuk mode publik:
 | Make Chat Publicly Available | **Aktif** |
 | Mode | **Embedded Chat** |
 | Authentication | None (atau Basic Auth, lihat bagian Keamanan) |
-| Options → Allowed Origins (CORS) | `https://dashboard-peat.amarmsd.my.id,http://localhost:5173` |
+| Options → Allowed Origins (CORS) | Tidak wajib (dashboard memakai proxy `/api/chat`, lihat 2.4) |
 | Options → Response Mode | **When Last Node Finishes** |
 | Streaming | **Nonaktif** (widget membaca satu jawaban JSON utuh) |
 
-Aktifkan workflow (toggle **Active**), lalu salin **Chat URL** dari node tersebut.
-Bentuknya seperti `https://<n8n-anda>/webhook/<id>/chat`.
+Klik **Publish** (atau toggle **Active**), lalu salin **Chat URL** dari node tersebut. Bentuknya seperti
+`https://<n8n-anda>/webhook/<id>/chat` — ID-nya dibuat otomatis oleh n8n, jangan dibuat sendiri.
+
+> Pada n8n versi baru, perubahan pada workflow yang sudah dipublikasikan **baru berlaku setelah klik
+> Publish lagi**. Selama belum di-publish ulang, URL produksi masih menjalankan versi lama.
 
 ### 2.2 Node "fail session"
 
@@ -130,19 +133,32 @@ ke `agent_runs`.
 
 ### 2.4 Pengaturan dashboard
 
+Dashboard **tidak** memanggil n8n langsung dari browser. Widget mengirim chat ke route server dashboard
+sendiri, **`/api/chat`**, lalu server meneruskannya ke n8n:
+
+```
+Browser ──► https://dashboard-anda/api/chat ──► (server dashboard) ──► n8n Chat Trigger
+```
+
+Akibatnya: **tidak ada masalah CORS**, dan URL webhook n8n **tidak terlihat** oleh pengunjung.
+
+URL n8n diisi lewat variabel **server** `N8N_CHAT_URL` (tanpa awalan `VITE_`):
+
 ```bash
 cp .env.example .env
-# isi VITE_N8N_CHAT_URL dengan Chat URL dari langkah 2.1
+# isi N8N_CHAT_URL dengan Chat URL (Production, berisi /webhook/) dari langkah 2.1
 npm run dev
 ```
 
-Untuk Docker, URL harus diberikan saat build:
+Untuk produksi/Docker, URL diberikan saat **menjalankan** container (tidak perlu build ulang bila berganti):
 
 ```bash
-docker build --build-arg VITE_N8N_CHAT_URL=https://<n8n-anda>/webhook/<id>/chat -t peatguard-dashboard .
+docker run -e N8N_CHAT_URL=https://<n8n-anda>/webhook/<id>/chat -p 3000:3000 peatguard-dashboard
 ```
 
-Widget mengirim permintaan berikut ke n8n (format standar Chat Trigger):
+Tanpa Docker (`npm run start`), set `N8N_CHAT_URL` di environment proses, mis. lewat systemd/pm2.
+
+Server meneruskan permintaan berikut ke n8n (format standar Chat Trigger):
 
 ```json
 { "action": "sendMessage", "sessionId": "<uuid per tab browser>", "chatInput": "<pertanyaan>" }
@@ -287,8 +303,9 @@ Untuk memantau biaya nyata, buka tab *Executions* n8n: setiap node model menampi
 ## 5. Cara menguji
 
 1. **Chat**: buka dashboard → klik **Tanya Asisten AI** → pilih salah satu contoh pertanyaan.
-   Jika muncul *"Gagal menghubungi agent"*, periksa: workflow aktif, Allowed Origins berisi domain dashboard,
-   dan `VITE_N8N_CHAT_URL` benar.
+   Jika muncul *"Gagal menghubungi agent"*, periksa: workflow sudah di-**Publish**, `N8N_CHAT_URL` di server
+   memakai Production URL (`/webhook/`, bukan `/webhook-test/`), dan server dashboard sudah di-restart.
+   Pesan error di chat menyebut penyebabnya (mis. *N8N_CHAT_URL belum diatur* atau *Agent membalas HTTP 404*).
 2. **Notifikasi agent tanpa menunggu jadwal**: di Supabase SQL Editor jalankan
 
    ```sql
