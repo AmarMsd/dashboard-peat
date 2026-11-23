@@ -10,6 +10,7 @@
 \usepackage[T1]{fontenc}
 \usepackage[indonesian]{babel}
 \usepackage{lmodern}
+\usepackage{tgadventor} % huruf sans untuk sampul
 \usepackage[margin=2.5cm]{geometry}
 \usepackage{microtype}
 \usepackage{setspace}
@@ -58,6 +59,7 @@
 \rhead{\small Versi 1.0}
 \cfoot{\small \thepage}
 \renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\familydefault}{\rmdefault}
 
 \usepackage[hidelinks]{hyperref}
 
@@ -66,6 +68,12 @@
 % =====================================================================
 \definecolor{umlfill}{RGB}{255,236,214}   % oranye sangat muda (isi)
 \definecolor{umldraw}{RGB}{204,102,0}     % oranye tua (garis)
+% warna sampul (mengikuti template)
+\definecolor{cvBlue}{RGB}{0,92,210}
+\definecolor{cvCyan}{RGB}{0,160,230}
+\definecolor{cvMid}{RGB}{8,112,216}
+\definecolor{cvNavy}{RGB}{0,32,170}
+\definecolor{cvTitle}{RGB}{0,130,225}
 
 \tikzset{
   >={Stealth[length=2.4mm]},
@@ -144,27 +152,73 @@
 
 % ---------- Halaman judul ----------
 \begin{titlepage}
-  \centering
-  \vspace*{2.5cm}
-  {\LARGE\bfseries DOKUMEN TEKNIS SISTEM\par}
-  \vspace{0.4cm}
-  {\Huge\bfseries PeatGuard\par}
-  \vspace{0.4cm}
-  {\Large Sistem Pemantauan dan Peringatan Dini\\Kebakaran Lahan Gambut Berbasis IoT\par}
-  \vspace{1.5cm}
-  \rule{0.6\linewidth}{0.6pt}\par
-  \vspace{0.4cm}
-  {\large Bahan Pemaparan Teknis\par}
-  \vspace{0.2cm}
-  {\normalsize Mencakup: \textit{Backend} (\kode{be-peat}) dan \textit{Dashboard} (\kode{dashboard-peat})\par}
-  \rule{0.6\linewidth}{0.6pt}\par
-  \vfill
-  \begin{tabular}{ll}
-    Versi dokumen & 1.0 \\
-    Tanggal       & 23 November 2026 \\
-    Status        & Draf untuk pemaparan \\
-  \end{tabular}
-  \vspace*{1.5cm}
+\thispagestyle{empty}
+\begin{tikzpicture}[remember picture, overlay, x=0.1757mm, y=-0.1922mm,
+                    shift={(current page.north west)}]
+  % ---- bentuk-bentuk dekoratif (mengikuti template) ----
+  % \para{x kiri-bawah}{y bawah}{lebar}{tinggi}{isi}{opasitas}
+  \newcommand{\para}[6]{%
+    \fill[#5, opacity=#6, rounded corners=18pt]
+      (#1,#2) -- ++(#3,0) -- ++({0.46*#4},{-#4}) -- ++({-#3},0) -- cycle;}
+  \begin{scope}
+    \clip (0,0) rectangle (1195,1545);
+    % bayangan pucat besar di belakang judul
+    \para{484}{1007}{300}{710}{cvBlue!6}{1}
+    \para{820}{810}{110}{225}{cvBlue!14}{0.9}
+    \para{1000}{830}{200}{232}{cvBlue!22}{0.9}
+    % pita pucat
+    \para{-400}{1017}{1000}{235}{cvBlue!14}{0.95}
+    \para{520}{940}{330}{140}{cvBlue!35}{0.6}
+    % blok biru utama
+    \fill[left color=cvBlue, right color=cvBlue!85!black, rounded corners=18pt]
+      (-400,1387) -- (631,1387) -- ({631+0.46*370},1017) -- ({-400+0.46*370},1017) -- cycle;
+    \fill[cvBlue, rounded corners=18pt]
+      (-400,1600) -- (130,1600) -- ({130+0.46*300},1300) -- ({-400+0.46*300},1300) -- cycle;
+    % blok biru terang di kanan
+    \para{791}{1192}{700}{415}{cvCyan}{0.95}
+    % blok biru tengah
+    \para{261}{1257}{700}{320}{cvMid}{0.88}
+    % blok navy
+    \para{261}{1257}{390}{240}{cvNavy}{0.85}
+    % blok gelap kecil kanan
+    \para{771}{1107}{160}{315}{cvNavy!80!cvMid}{0.55}
+    % garis putih aksen
+    \draw[white, line width=2.5pt] (1086,822) -- (1195,822);
+    \draw[white, line width=2.5pt] (336,914) -- (526,914);
+    \draw[white, line width=2.5pt] (0,1282) -- (116,1282);
+    \draw[white, line width=2.5pt] (486,1362) -- (636,1362);
+  \end{scope}
+
+  % ---- teks ----
+  \begin{scope}[font=\fontfamily{qag}\selectfont]
+    % kiri atas
+    \node[anchor=north west, align=left, inner sep=0, font=\fontfamily{qag}\bfseries\fontsize{17}{20}\selectfont]
+      at (108,95) {\textls[60]{Sistem Pemantauan}\\\textls[60]{Lahan Gambut}};
+    \draw[line width=0.9pt] (108,201) -- (242,201);
+    \node[anchor=north west, inner sep=0, font=\fontfamily{qag}\bfseries\fontsize{9}{11}\selectfont]
+      at (108,216) {\textls[180]{Versi 1.0}};
+    % kanan atas
+    \node[anchor=north east, align=right, inner sep=0, font=\fontfamily{qag}\fontsize{12}{14}\selectfont]
+      at (1105,100) {\textls[300]{NOVEMBER}};
+    \node[anchor=north east, inner sep=0, text=gray!70, font=\fontfamily{qag}\fontsize{26}{30}\selectfont]
+      at (1105,128) {\textls[40]{2026}};
+    % judul
+    \node[anchor=south west, inner sep=0, text=cvTitle, font=\fontfamily{qag}\bfseries\fontsize{40}{44}\selectfont]
+      at (104,398) {\textls[20]{PEATGUARD}};
+    \node[anchor=south west, inner sep=0, text=cvTitle, font=\fontfamily{qag}\bfseries\fontsize{66}{70}\selectfont]
+      at (100,513) {DOKUMEN};
+    \node[anchor=south west, inner sep=0, font=\fontfamily{qag}\bfseries\fontsize{66}{70}\selectfont]
+      at (100,637) {TEKNIS};
+    \draw[line width=1.4pt] (102,679) -- (488,679);
+    \node[anchor=north west, inner sep=0, font=\fontfamily{qag}\bfseries\fontsize{13.5}{16}\selectfont]
+      at (102,702) {\textls[220]{Sistem Peringatan Dini Kebakaran Gambut}};
+    % kanan bawah
+    \node[anchor=east, align=right, inner sep=0, font=\fontfamily{qag}\fontsize{12.5}{24}\selectfont]
+      at (1103,1394) {\textls[60]{Arsitektur \& Diagram UML}\ \ \textbullet\\
+                      \textls[60]{Rancangan Basis Data}\ \ \textbullet\\
+                      \textls[60]{Spesifikasi API \& MQTT}\ \ \textbullet};
+  \end{scope}
+\end{tikzpicture}
 \end{titlepage}
 
 \tableofcontents
