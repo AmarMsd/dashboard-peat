@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useAgentSettings } from "../lib/useAgentSettings";
 
 // Chat selalu dikirim ke proxy di server dashboard sendiri (/api/chat), yang meneruskannya ke n8n
@@ -57,19 +59,55 @@ function extractReply(data) {
   return data.output ?? data.text ?? data.message ?? data.response ?? "";
 }
 
-// Render sederhana: baris baru dipertahankan, **tebal** jadi <strong>. Tanpa HTML mentah.
-function FormattedText({ text }) {
-  const parts = String(text).split(/(\*\*[^*]+\*\*)/g);
+// Pesan pengguna/error: teks biasa (baris baru dipertahankan).
+function PlainText({ text }) {
+  return <span className="whitespace-pre-wrap break-words">{String(text)}</span>;
+}
+
+// Jawaban agent ditulis dalam Markdown (tabel, daftar, tebal, judul). Dirender dengan
+// react-markdown dengan skipHtml: HTML mentah di dalam jawaban dibuang, sehingga aman ditampilkan.
+const markdownComponents = {
+  p: ({ node, ...props }) => <p className="my-1.5 first:mt-0 last:mb-0" {...props} />,
+  strong: ({ node, ...props }) => <strong className="font-semibold text-slate-900" {...props} />,
+  h1: ({ node, ...props }) => <h3 className="mb-1 mt-3 text-sm font-bold text-slate-900 first:mt-0" {...props} />,
+  h2: ({ node, ...props }) => <h3 className="mb-1 mt-3 text-sm font-bold text-slate-900 first:mt-0" {...props} />,
+  h3: ({ node, ...props }) => <h4 className="mb-1 mt-3 text-[13px] font-bold text-slate-900 first:mt-0" {...props} />,
+  h4: ({ node, ...props }) => <h4 className="mb-1 mt-2 text-[13px] font-semibold text-slate-900 first:mt-0" {...props} />,
+  ul: ({ node, ...props }) => <ul className="my-1.5 list-disc space-y-1 pl-5" {...props} />,
+  ol: ({ node, ...props }) => <ol className="my-1.5 list-decimal space-y-1 pl-5" {...props} />,
+  li: ({ node, ...props }) => <li className="pl-0.5" {...props} />,
+  hr: () => <hr className="my-3 border-slate-200" />,
+  blockquote: ({ node, ...props }) => (
+    <blockquote className="my-2 border-l-2 border-slate-300 pl-3 text-slate-600" {...props} />
+  ),
+  a: ({ node, ...props }) => (
+    <a className="text-blue-600 underline" target="_blank" rel="noopener noreferrer" {...props} />
+  ),
+  code: ({ node, ...props }) => (
+    <code className="rounded bg-white/80 px-1 py-0.5 font-mono text-[12px] text-slate-800" {...props} />
+  ),
+  table: ({ node, ...props }) => (
+    <div className="my-2 overflow-x-auto rounded-md border border-slate-200 bg-white">
+      <table className="w-full border-collapse text-left text-[12.5px]" {...props} />
+    </div>
+  ),
+  thead: ({ node, ...props }) => <thead className="bg-slate-50" {...props} />,
+  th: ({ node, ...props }) => (
+    <th className="whitespace-nowrap border-b border-slate-200 px-2.5 py-1.5 font-semibold text-slate-700" {...props} />
+  ),
+  td: ({ node, ...props }) => (
+    <td className="border-b border-slate-100 px-2.5 py-1.5 align-top text-slate-700" {...props} />
+  ),
+  tr: ({ node, ...props }) => <tr className="last:[&>td]:border-b-0" {...props} />,
+};
+
+function MarkdownText({ text }) {
   return (
-    <span className="whitespace-pre-wrap break-words">
-      {parts.map((part, i) =>
-        part.startsWith("**") && part.endsWith("**") ? (
-          <strong key={i}>{part.slice(2, -2)}</strong>
-        ) : (
-          <span key={i}>{part}</span>
-        )
-      )}
-    </span>
+    <div className="break-words">
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents} skipHtml>
+        {String(text)}
+      </ReactMarkdown>
+    </div>
   );
 }
 
@@ -189,7 +227,7 @@ export function AgentChat({ variant = "floating", enabled = true }) {
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
-              className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed ${
+              className={`${m.role === "assistant" ? "min-w-0 max-w-[92%]" : "max-w-[85%]"} rounded-lg px-3 py-2 text-sm leading-relaxed ${
                 m.role === "user"
                   ? "rounded-br-sm bg-[#2563eb] text-white"
                   : m.role === "error"
@@ -197,7 +235,7 @@ export function AgentChat({ variant = "floating", enabled = true }) {
                   : "rounded-bl-sm bg-slate-100 text-slate-800"
               }`}
             >
-              <FormattedText text={m.text} />
+              {m.role === "assistant" ? <MarkdownText text={m.text} /> : <PlainText text={m.text} />}
             </div>
           </div>
         ))}
