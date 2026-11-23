@@ -174,15 +174,12 @@ export function MainMenu() {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="m-0 text-sm font-semibold text-gray-800">
-                Aliran 9 Topik Telemetri Realtime (MQTT Live Feeds)
+                Telemetri Data
               </h2>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">
-                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                9 Topik Berlangganan Aktif
-              </span>
+              
             </div>
             <p className="m-0 mt-0.5 text-xs text-gray-500">
-              Setiap Titik Pantau (Node) menggabungkan 3 parameter spesifik (Kelembapan, pH, dan Suhu) dari topik sensor masing-masing.
+              Setiap Titik Pantau menggabungkan 3 parameter spesifik (Kelembapan, pH, dan Suhu) dari topik sensor masing-masing.
             </p>
           </div>
           <span className="text-xs text-gray-400 font-mono">
