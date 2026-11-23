@@ -1,11 +1,10 @@
-import { useCallback, useState } from "react";
-import { sensors } from "../data/sensors";
 import { SensorMap } from "./SensorMap";
+import { useSensorData } from "../context/SensorContext";
 
 const statusLabels = {
-  normal: "Baik",
-  warning: "Perlu Dicek",
-  critical: "Bahaya",
+  normal: "Aman",
+  warning: "Waspada",
+  critical: "Kritis",
 };
 
 const statusBadge = {
@@ -23,83 +22,111 @@ const statusDot = {
 function SensorDetail({ sensor }) {
   if (!sensor) return null;
   return (
-    <div className="mb-4 rounded-xl border-l-4 border-[#2563eb] bg-blue-50 p-4">
+    <div className="mb-4 rounded-xl border-l-4 border-[#2563eb] bg-blue-50/60 p-4">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <p className="m-0 text-xs text-gray-500">{sensor.id} · {sensor.region}</p>
           <h3 className="m-0 mt-0.5 text-sm font-semibold text-gray-800">{sensor.name}</h3>
         </div>
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusBadge[sensor.status]}`}>
-          {statusLabels[sensor.status]}
-        </span>
+        {/* <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${statusBadge[sensor.status] || "bg-gray-100 text-gray-600"}`}>
+          {statusLabels[sensor.status] || sensor.status}
+        </span> */}
       </div>
       <div className="grid grid-cols-3 gap-2 text-center">
-        {[
-          ["Kelembapan", `${sensor.moisture}%`],
-          ["Suhu", `${sensor.temperature}°C`],
-          ["Ketinggian Air", `${sensor.waterLevel} cm`],
-        ].map(([label, value]) => (
-          <div key={label} className="rounded-lg bg-white p-2">
-            <p className="m-0 text-xs font-semibold text-gray-800">{value}</p>
-            <p className="m-0 mt-0.5 text-[10px] text-gray-500">{label}</p>
-          </div>
-        ))}
+        <div className="rounded-lg bg-white p-2 shadow-2xs">
+          <p className="m-0 text-xs font-semibold text-gray-800">{sensor.moisture}%</p>
+          <p className="m-0 mt-0.5 text-[10px] text-gray-500">Kelembapan</p>
+        </div>
+        <div className="rounded-lg bg-white p-2 shadow-2xs">
+          <p className="m-0 text-xs font-semibold text-gray-800">{sensor.ph ?? 4.2} pH</p>
+          <p className="m-0 mt-0.5 text-[10px] text-gray-500">Keasaman</p>
+        </div>
+        <div className="rounded-lg bg-white p-2 shadow-2xs">
+          <p className="m-0 text-xs font-semibold text-gray-800">{sensor.temperature}°C</p>
+          <p className="m-0 mt-0.5 text-[10px] text-gray-500">Suhu Tanah</p>
+        </div>
       </div>
-      <p className="m-0 mt-2 text-[10px] text-gray-400">Dibaca {sensor.lastReading}</p>
+      <div className="mt-2.5 flex items-center justify-between text-[10px] text-gray-400">
+        <span>Transmisi: {sensor.lastReading || "Aktif"}</span>
+        <a href="/riwayat" className="cursor-pointer text-blue-600 hover:underline">
+          Lihat riwayat →
+        </a>
+      </div>
     </div>
   );
 }
 
 export function MainMenu() {
-  const [selectedSensor, setSelectedSensor] = useState(sensors[0]);
-  const selectSensor = useCallback((sensor) => setSelectedSensor(sensor), []);
+  const { sensors, selectedSensor, setSelectedSensor, connectionStatus, lastMessageTime } = useSensorData();
+
   const activeCount = sensors.filter((s) => s.status === "normal").length;
   const warningCount = sensors.filter((s) => s.status !== "normal").length;
 
   const today = new Date().toLocaleDateString("id-ID", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
 
   return (
     <main className="min-w-0 flex-1 p-5 lg:p-7">
-      {/* Page title */}
-      <div className="mb-6">
-        <h1 className="m-0 text-xl font-semibold text-gray-800">Dashboard</h1>
-        <p className="m-0 mt-1 text-sm text-gray-500 capitalize">{today}</p>
+      {/* Page title and quick links */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="m-0 text-xl font-semibold text-gray-800">Dashboard Pemantauan Gambut</h1>
+          <p className="m-0 mt-1 text-sm text-gray-500 capitalize">{today}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <a
+            href="/riwayat"
+            className="cursor-pointer inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-2xs hover:bg-gray-50 transition-colors"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            Buka Riwayat Data & Tren
+          </a>
+        </div>
       </div>
 
       {/* Stat cards */}
-      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3">
         <article className="rounded-xl border-l-4 border-[#2563eb] bg-white p-4 shadow-sm">
-          <p className="m-0 text-xs text-gray-500">Total Sensor</p>
+          <p className="m-0 text-xs text-gray-500">Titik Sensor Aktif</p>
           <p className="m-0 mt-2 text-3xl font-bold text-gray-800">{sensors.length}</p>
-          <p className="m-0 mt-1 text-xs text-blue-600">terpasang di lapangan</p>
+          <p className="m-0 mt-1 text-xs text-blue-600">titik pantau terpasang</p>
         </article>
-        <article className="rounded-xl border-l-4 border-green-500 bg-white p-4 shadow-sm">
-          <p className="m-0 text-xs text-gray-500">Kondisi Baik</p>
+        <article className="rounded-xl border-l-4 border-emerald-500 bg-white p-4 shadow-sm">
+          <p className="m-0 text-xs text-gray-500">Kondisi Gambut Aman</p>
           <p className="m-0 mt-2 text-3xl font-bold text-gray-800">{activeCount}</p>
-          <p className="m-0 mt-1 text-xs text-green-600">tidak perlu tindakan</p>
+          <p className="m-0 mt-1 text-xs text-emerald-600">terhidrasi dengan baik</p>
         </article>
         <article className="rounded-xl border-l-4 border-amber-500 bg-white p-4 shadow-sm">
-          <p className="m-0 text-xs text-gray-500">Perlu Diperiksa</p>
+          <p className="m-0 text-xs text-gray-500">Perlu Perhatian</p>
           <p className="m-0 mt-2 text-3xl font-bold text-gray-800">{warningCount}</p>
-          <p className="m-0 mt-1 text-xs text-amber-600">membutuhkan perhatian</p>
+          <p className="m-0 mt-1 text-xs text-amber-600">rawan kering / suhu tinggi</p>
         </article>
-        <article className="rounded-xl border-l-4 border-gray-300 bg-white p-4 shadow-sm">
-          <p className="m-0 text-xs text-gray-500">Terakhir Diperbarui</p>
-          <p className="m-0 mt-2 text-xl font-bold text-gray-800">2 menit</p>
-          <p className="m-0 mt-1 text-xs text-gray-400">lalu · data terbaru</p>
-        </article>
+        {/* <article className="rounded-xl border-l-4 border-indigo-400 bg-white p-4 shadow-sm">
+          <p className="m-0 text-xs text-gray-500">Status Koneksi MQTT</p>
+          <p className="m-0 mt-2 text-xl font-bold text-gray-800">
+            {connectionStatus === "connected" ? "Terhubung" : connectionStatus === "connecting" ? "Menghubungkan" : "Offline"}
+          </p>
+          <p className="m-0 mt-1 text-xs text-indigo-600">
+            {lastMessageTime ? "Transmisi realtime masuk" : "Broker wss aktif"}
+          </p>
+        </article> */}
       </div>
 
       {/* Map + List */}
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
         {/* Map card */}
-        <section className="overflow-hidden rounded-xl bg-white shadow-sm">
+        <section className="overflow-hidden rounded-xl bg-white shadow-sm border border-gray-100">
           <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
             <div>
-              <h2 className="m-0 text-sm font-semibold text-gray-800">Peta Lokasi Sensor</h2>
-              <p className="m-0 mt-0.5 text-xs text-gray-500">Klik titik untuk melihat kondisi lahan</p>
+              <h2 className="m-0 text-sm font-semibold text-gray-800">Peta Sebaran Titik Pantau</h2>
+              <p className="m-0 mt-0.5 text-xs text-gray-500">Pilih titik sensor untuk memantau kondisi di lapangan</p>
             </div>
             <div className="flex gap-3 text-[10px] text-gray-500">
               {Object.entries(statusLabels).map(([status, label]) => (
@@ -111,16 +138,16 @@ export function MainMenu() {
             </div>
           </div>
           <div className="h-[440px]">
-            <SensorMap sensors={sensors} onSelect={selectSensor} />
+            <SensorMap sensors={sensors} onSelect={(s) => setSelectedSensor(s)} />
           </div>
         </section>
 
         {/* Sensor list card */}
-        <aside className="rounded-xl bg-white p-5 shadow-sm">
+        <aside className="rounded-xl bg-white p-5 shadow-sm border border-gray-100">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="m-0 text-sm font-semibold text-gray-800">Status Sensor</h2>
+            <h2 className="m-0 text-sm font-semibold text-gray-800">Status Titik Lapangan</h2>
             <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-              {sensors.length} lokasi
+              {sensors.length} titik
             </span>
           </div>
 
@@ -128,11 +155,11 @@ export function MainMenu() {
           <SensorDetail sensor={selectedSensor} />
 
           {/* Sensor list */}
-          <p className="mb-2 text-xs text-gray-400">Pilih lokasi lain</p>
-          <div className="space-y-1">
+          <p className="mb-2 text-xs text-gray-400">Daftar Titik Pemantauan</p>
+          <div className="space-y-1.5">
             {sensors.map((sensor) => (
               <button
-                className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
+                className={`cursor-pointer flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
                   selectedSensor?.id === sensor.id
                     ? "bg-blue-50 text-blue-700"
                     : "hover:bg-gray-50 text-gray-700"
@@ -141,7 +168,7 @@ export function MainMenu() {
                 key={sensor.id}
                 onClick={() => setSelectedSensor(sensor)}
               >
-                <span className={`size-2 shrink-0 rounded-full ${statusDot[sensor.status]}`} />
+                <span className={`size-2 shrink-0 rounded-full ${statusDot[sensor.status] || "bg-gray-300"}`} />
                 <span className="min-w-0 flex-1 truncate text-xs font-medium">{sensor.name}</span>
                 <span className="shrink-0 text-[10px] text-gray-400">{sensor.id}</span>
               </button>

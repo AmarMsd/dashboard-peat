@@ -8,6 +8,7 @@ import {
 } from "react-router";
 
 import "./app.css";
+import { SensorProvider } from "./context/SensorContext";
 
 export const links = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -41,7 +42,11 @@ export function Layout({ children }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  return (
+    <SensorProvider>
+      <Outlet />
+    </SensorProvider>
+  );
 }
 
 export function ErrorBoundary({ error }) {

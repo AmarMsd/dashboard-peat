@@ -11,8 +11,8 @@ function createMarkerIcon(leaflet, status) {
   const color = markerColors[status] || markerColors.normal;
 
   return leaflet.divIcon({
-    className: "",
-    html: `<span style="display:block;width:18px;height:18px;border:3px solid #fff;border-radius:9999px;background:${color};box-shadow:0 0 0 5px ${color}33,0 3px 8px #0008"></span>`,
+    className: "cursor-pointer",
+    html: `<span style="display:block;width:18px;height:18px;border:3px solid #fff;border-radius:9999px;background:${color};box-shadow:0 0 0 5px ${color}33,0 3px 8px #0008;cursor:pointer;"></span>`,
     iconSize: [18, 18],
     iconAnchor: [9, 9],
   });
@@ -67,5 +67,5 @@ export function SensorMap({ sensors, onSelect }) {
     };
   }, [onSelect, sensors]);
 
-  return <div className="sensor-map h-full min-h-[520px] w-full" ref={mapElement} />;
+  return <div className="sensor-map relative z-0 isolate h-full min-h-[520px] w-full" ref={mapElement} />;
 }
