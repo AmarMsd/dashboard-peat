@@ -7,4 +7,5 @@ export default [
   route("kondisi-lahan", "routes/kondisi-lahan.jsx"),
   route("peringatan", "routes/peringatan.jsx"),
   route("laporan", "routes/laporan.jsx"),
+  route("agent", "routes/agent.jsx"),
 ];

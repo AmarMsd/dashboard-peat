@@ -143,3 +143,112 @@ export async function fetchNotificationsFromSupabase(limit = 20) {
     return null;
   }
 }
+
+/**
+ * Mengubah waktu menjadi teks relatif, mis. "5 menit lalu"
+ */
+export function formatRelativeTime(isoString) {
+  if (!isoString) return "";
+  const diffSec = Math.max(0, Math.round((Date.now() - new Date(isoString).getTime()) / 1000));
+  if (diffSec < 60) return "Baru saja";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} menit lalu`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour} jam lalu`;
+  return new Date(isoString).toLocaleString("id-ID", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/**
+ * Menyamakan bentuk baris tabel notifications Supabase dengan bentuk
+ * notifikasi yang dipakai komponen header dashboard.
+ */
+export function mapSupabaseNotification(row) {
+  return {
+    id: row.id,
+    title: row.title,
+    message: row.message,
+    recommendation: row.recommendation || null,
+    type: row.severity || "info",
+    source: row.source || "sistem",
+    sensor_id: row.sensor_id,
+    created_at: row.created_at,
+    timestamp: formatRelativeTime(row.created_at),
+    is_read: Boolean(row.is_read),
+    url: row.sensor_id ? "/peringatan" : "/",
+    origin: "supabase",
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Pengaturan AI Agent (tabel agent_settings, view v_agent_usage)
+// ---------------------------------------------------------------------------
+
+/**
+ * Mengambil pengaturan agent (satu baris, id = 1). null jika tabel belum dibuat.
+ */
+export async function fetchAgentSettings() {
+  try {
+    const { data, error } = await supabase.from("agent_settings").select("*").eq("id", 1).maybeSingle();
+    if (error) {
+      console.warn("Notice Supabase agent_settings:", error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Memperbarui pengaturan agent lewat fungsi database yang memeriksa PIN operator.
+ * patch kosong ({}) = hanya memeriksa PIN.
+ * Hasil: { ok: true, settings } atau { ok: false, reason: "invalid" | "locked" | "not_set" | "error" }
+ */
+export async function updateAgentSettings(pin, patch = {}) {
+  try {
+    const { data, error } = await supabase.rpc("update_agent_settings", { p_pin: pin, p_patch: patch });
+    if (error) {
+      console.warn("Gagal memanggil update_agent_settings:", error.message);
+      return { ok: false, reason: "error" };
+    }
+    return data || { ok: false, reason: "error" };
+  } catch (err) {
+    return { ok: false, reason: "error" };
+  }
+}
+
+/**
+ * Pemakaian agent 24 jam terakhir: { chat_24h, monitor_24h, tokens_24h }
+ */
+export async function fetchAgentUsage() {
+  try {
+    const { data, error } = await supabase.from("v_agent_usage").select("*").maybeSingle();
+    if (error) return null;
+    return data;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Notifikasi yang dibuat oleh AI Agent
+ */
+export async function fetchAgentNotifications(limit = 10) {
+  try {
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("source", "agent")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) return null;
+    return data;
+  } catch (err) {
+    return null;
+  }
+}

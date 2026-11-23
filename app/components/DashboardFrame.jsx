@@ -1,11 +1,40 @@
 import { useState, useEffect, useRef } from "react";
 import { Footer } from "./Footer.jsx";
 import { Sidebar } from "./Sidebar.jsx";
+import { FloatingAgentChat } from "./AgentChat.jsx";
 import { useSensorData } from "../context/SensorContext";
+import {
+  supabase,
+  fetchNotificationsFromSupabase,
+  mapSupabaseNotification,
+  formatRelativeTime,
+} from "../lib/supabase";
 
-const API_BASE = "http://127.0.0.1:8000/api";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000/api";
 
-// console.log("API_BASE:", API_BASE); 
+// Dashboard bersifat publik: status "sudah dibaca" disimpan di browser masing-masing
+// pengunjung, sehingga satu pengunjung tidak mengubah notifikasi milik pengunjung lain.
+const SEEN_KEY = "peatguard_seen_notifications_v1";
+
+function readSeenIds() {
+  try {
+    const raw = localStorage.getItem(SEEN_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function saveSeenIds(ids) {
+  try {
+    localStorage.setItem(SEEN_KEY, JSON.stringify([...ids].slice(-300)));
+  } catch (e) {}
+}
+
+function withLocalReadState(row) {
+  const item = mapSupabaseNotification(row);
+  return { ...item, is_read: readSeenIds().has(String(item.id)) };
+}
 // Data cadangan lokal jika backend FastAPI belum dinyalakan
 const FALLBACK_NOTIFICATIONS = [
   {
@@ -46,8 +75,49 @@ const FALLBACK_NOTIFICATIONS = [
   },
 ];
 
+// Indikator kecil di header: apakah data sensor sedang mengalir secara langsung
+function LiveDataBadge({ status, lastMessageTime, onReconnect }) {
+  const time = lastMessageTime
+    ? new Date(lastMessageTime).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+    : null;
+
+  if (status === "connected") {
+    return (
+      <span
+        className="hidden shrink-0 items-center gap-1.5 rounded-md border border-emerald-200/80 bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700 md:inline-flex"
+        title="Data sensor diterima langsung melalui MQTT"
+      >
+        <span className="relative flex size-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+        </span>
+        Langsung{time ? ` · ${time} WIB` : ""}
+      </span>
+    );
+  }
+  if (status === "connecting") {
+    return (
+      <span className="hidden shrink-0 items-center gap-1.5 rounded-md border border-amber-200/80 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700 md:inline-flex">
+        <span className="size-2 animate-pulse rounded-full bg-amber-400" />
+        Menghubungkan…
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onReconnect}
+      className="cursor-pointer hidden shrink-0 items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-100 md:inline-flex"
+      title="Klik untuk menyambung ulang"
+    >
+      <span className="size-2 rounded-full bg-slate-400" />
+      Data tertunda · Sambung ulang
+    </button>
+  );
+}
+
 export function DashboardFrame({ active, children }) {
-  const { connectionStatus, refreshConnection, sensors } = useSensorData();
+  const { connectionStatus, refreshConnection, sensors, lastMessageTime } = useSensorData();
 
   // Search State
   const [searchQuery, setSearchQuery] = useState("");
@@ -57,37 +127,75 @@ export function DashboardFrame({ active, children }) {
 
   // Notification State
   const [notifications, setNotifications] = useState(FALLBACK_NOTIFICATIONS);
-  const [unreadCount, setUnreadCount] = useState(2);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const notifContainerRef = useRef(null);
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
-  // 1. Fetch Notifikasi dari Backend FastAPI (dengan fallback anggun)
+  // 1. Ambil notifikasi.
+  //    Sumber utama: tabel `notifications` Supabase (diisi bridge & agent n8n) + realtime.
+  //    Cadangan: backend FastAPI, lalu data lokal.
   useEffect(() => {
+    if (typeof window === "undefined") return;
     let isMounted = true;
-    async function fetchNotifs() {
+    let usingSupabase = false;
+
+    async function fetchFromFastApi() {
       try {
         const res = await fetch(`${API_BASE}/notifications`, { signal: AbortSignal.timeout(2000) });
         if (res.ok) {
           const data = await res.json();
           if (isMounted) {
-            setNotifications(data.notifications || []);
-            setUnreadCount(data.unread_count ?? 0);
+            setNotifications((data.notifications || []).map((n) => ({ ...n, origin: "fastapi" })));
           }
         }
       } catch (err) {
-        // Backend offline, gunakan fallback notifikasi lokal
-        if (isMounted) {
-          const unread = FALLBACK_NOTIFICATIONS.filter((n) => !n.is_read).length;
-          setUnreadCount(unread);
-        }
+        // Backend offline, tetap memakai notifikasi lokal
       }
     }
 
-    fetchNotifs();
-    const interval = setInterval(fetchNotifs, 10000); // Polling update berkala
+    async function loadNotifications() {
+      const rows = await fetchNotificationsFromSupabase(20);
+      if (!isMounted) return;
+      if (rows) {
+        usingSupabase = true;
+        setNotifications(rows.map(withLocalReadState));
+      } else {
+        await fetchFromFastApi();
+      }
+    }
+
+    loadNotifications();
+
+    // Realtime: notifikasi baru (mis. dari agent n8n) langsung muncul tanpa reload
+    const channel = supabase
+      .channel("realtime-notifications")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload) => {
+        if (!payload.new) return;
+        const item = withLocalReadState(payload.new);
+        setNotifications((prev) => [item, ...prev.filter((n) => n.id !== item.id)].slice(0, 20));
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications" }, (payload) => {
+        if (!payload.new) return;
+        const item = withLocalReadState(payload.new);
+        setNotifications((prev) => prev.map((n) => (n.id === item.id ? item : n)));
+      })
+      .subscribe();
+
+    // Perbarui label waktu relatif & polling cadangan FastAPI
+    const interval = setInterval(() => {
+      if (usingSupabase) {
+        setNotifications((prev) =>
+          prev.map((n) => (n.created_at ? { ...n, timestamp: formatRelativeTime(n.created_at) } : n))
+        );
+      } else {
+        fetchFromFastApi();
+      }
+    }, 30000);
+
     return () => {
       isMounted = false;
       clearInterval(interval);
+      supabase.removeChannel(channel);
     };
   }, []);
 
@@ -184,14 +292,20 @@ export function DashboardFrame({ active, children }) {
 
   // Tandai notifikasi spesifik sebagai dibaca
   const markNotificationAsRead = async (id, targetUrl) => {
+    const target = notifications.find((n) => n.id === id);
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
     );
-    setUnreadCount((prev) => Math.max(0, prev - 1));
 
-    try {
-      await fetch(`${API_BASE}/notifications/${id}/read`, { method: "POST" });
-    } catch (e) {}
+    if (target?.origin === "supabase") {
+      const seen = readSeenIds();
+      seen.add(String(id));
+      saveSeenIds(seen);
+    } else {
+      try {
+        await fetch(`${API_BASE}/notifications/${id}/read`, { method: "POST" });
+      } catch (e) {}
+    }
 
     setIsNotifOpen(false);
     if (targetUrl) {
@@ -201,11 +315,17 @@ export function DashboardFrame({ active, children }) {
 
   // Tandai semua notifikasi dibaca
   const markAllAsRead = async () => {
+    const fromSupabase = notifications.some((n) => n.origin === "supabase");
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    setUnreadCount(0);
-    try {
-      await fetch(`${API_BASE}/notifications/mark-all-read`, { method: "POST" });
-    } catch (e) {}
+    if (fromSupabase) {
+      const seen = readSeenIds();
+      notifications.forEach((n) => n.origin === "supabase" && seen.add(String(n.id)));
+      saveSeenIds(seen);
+    } else {
+      try {
+        await fetch(`${API_BASE}/notifications/mark-all-read`, { method: "POST" });
+      } catch (e) {}
+    }
   };
 
   return (
@@ -214,15 +334,22 @@ export function DashboardFrame({ active, children }) {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Header with z-50 to stay above page content */}
         <header className="relative flex h-14 items-center gap-3 border-b border-slate-200/90 bg-white px-5 shadow-2xs lg:px-7 z-50">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+          {/* Breadcrumb (disembunyikan di layar kecil agar header tidak melebar) */}
+          <div className="hidden items-center gap-1.5 text-xs text-slate-400 sm:flex">
             <span>PeatGuard</span>
             <span>/</span>
             <span className="font-semibold text-slate-800">{active}</span>
           </div>
 
+          {/* Indikator data langsung */}
+          <LiveDataBadge
+            status={connectionStatus}
+            lastMessageTime={lastMessageTime}
+            onReconnect={refreshConnection}
+          />
+
           {/* Search Bar with Autocomplete Dropdown */}
-          <div ref={searchContainerRef} className="relative ml-auto w-full max-w-xs">
+          <div ref={searchContainerRef} className="relative ml-auto min-w-0 flex-1 sm:w-64 sm:flex-none">
             <div className="flex h-8.5 items-center gap-2 rounded-md bg-slate-100/80 px-2.5 text-xs text-slate-600 focus-within:ring-1 focus-within:ring-blue-500 focus-within:bg-white border border-slate-200/60 focus-within:border-blue-500 transition-all">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -304,7 +431,7 @@ export function DashboardFrame({ active, children }) {
           </div>
 
           {/* Notification Bell with Badge & Dropdown */}
-          <div ref={notifContainerRef} className="relative">
+          <div ref={notifContainerRef} className="relative shrink-0">
             <button
               onClick={() => setIsNotifOpen((prev) => !prev)}
               className="cursor-pointer relative grid size-8.5 place-items-center rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
@@ -375,8 +502,13 @@ export function DashboardFrame({ active, children }) {
                           </span>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-1">
-                              <h4 className="m-0 text-xs font-semibold text-slate-800 truncate">
-                                {n.title}
+                              <h4 className="m-0 flex min-w-0 items-center gap-1.5 text-xs font-semibold text-slate-800">
+                                {n.source === "agent" && (
+                                  <span className="shrink-0 rounded bg-violet-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-violet-700" title="Dibuat oleh AI Agent">
+                                    AI
+                                  </span>
+                                )}
+                                <span className="truncate">{n.title}</span>
                               </h4>
                               {!n.is_read && (
                                 <span className="size-1.5 rounded-full bg-blue-600 shrink-0" title="Belum dibaca"></span>
@@ -385,6 +517,12 @@ export function DashboardFrame({ active, children }) {
                             <p className="m-0 mt-0.5 text-xs text-slate-600 leading-snug line-clamp-2">
                               {n.message}
                             </p>
+                            {n.recommendation && (
+                              <p className="m-0 mt-1 rounded-md border border-slate-100 bg-slate-50 px-2 py-1 text-[11px] text-slate-600 leading-snug line-clamp-3">
+                                <span className="font-semibold text-slate-700">Saran: </span>
+                                {n.recommendation}
+                              </p>
+                            )}
                             <span className="mt-1 block text-[10px] text-slate-400">
                               {n.timestamp}
                             </span>
@@ -408,15 +546,13 @@ export function DashboardFrame({ active, children }) {
             )}
           </div>
 
-          {/* Avatar */}
-          <span className="grid size-8 shrink-0 place-items-center rounded-md bg-[#2563eb] text-xs font-bold text-white shadow-2xs">
-            AM
-          </span>
         </header>
 
         {children}
         <Footer />
       </div>
+      {active !== "Agent" && <FloatingAgentChat />}
+
     </div>
   );
 }
