@@ -9,4 +9,6 @@ export default [
   route("laporan", "routes/laporan.jsx"),
   route("agent", "routes/agent.jsx"),
   route("api/chat", "routes/api.chat.js"),
+  // Chrome DevTools otomatis meminta file ini; dijawab kosong agar tidak muncul error di terminal.
+  route(".well-known/appspecific/com.chrome.devtools.json", "routes/devtools-json.js"),
 ];

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useAgentSettings } from "../lib/useAgentSettings";
 
-// Secara bawaan chat dikirim ke proxy di server dashboard sendiri (/api/chat), yang meneruskannya
-// ke n8n. Ini menghindari masalah CORS dan menyembunyikan URL n8n dari pengunjung.
-// VITE_N8N_CHAT_URL hanya untuk kebutuhan khusus (memanggil n8n langsung dari browser).
-const CHAT_URL = import.meta.env.VITE_N8N_CHAT_URL || "/api/chat";
+// Chat selalu dikirim ke proxy di server dashboard sendiri (/api/chat), yang meneruskannya ke n8n
+// (URL n8n diatur lewat variabel server N8N_CHAT_URL). Browser tidak pernah memanggil n8n langsung,
+// sehingga tidak ada masalah CORS dan URL n8n tidak terlihat oleh pengunjung.
+const CHAT_URL = "/api/chat";
 const SESSION_KEY = "peatguard_agent_session_v1";
 const MESSAGES_KEY = "peatguard_agent_messages_v1";
 const REQUEST_TIMEOUT_MS = 60000;
