@@ -227,19 +227,19 @@ export default function AgentPage() {
 
             <Card
               title="Kontrol Agent"
-              subtitle={isOperator ? "Perubahan langsung berlaku di semua perangkat." : "Status saat ini. Hanya operator yang dapat mengubah."}
+              subtitle={isOperator ? "Perubahan langsung berlaku di semua perangkat." : "Hanya operator yang dapat mengubah."}
             >
               <div className="divide-y divide-slate-100">
                 <ControlRow
                   title="Chat Asisten"
-                  description="Petugas dapat bertanya ke AI dari dashboard. Token hanya terpakai saat ada pertanyaan."
+                  description="Petugas dapat bertanya ke AI dari dashboard. Token akan terpakai saat ada pertanyaan."
                   checked={settings.chat_enabled}
                   onChange={(v) => handleToggle("chat_enabled", v)}
                   disabled={readOnly || isSaving}
                 />
                 <ControlRow
                   title="Agent Pemantau Otomatis"
-                  description="AI menganalisis tren & menulis saran tindakan, hanya saat status berubah atau naik level. Peringatan berbasis aturan tetap berjalan walau ini dimatikan."
+                  description="AI menganalisis tren & menulis saran tindakan, hanya saat status berubah atau naik level. Peringatan berbasis aturan tetap berjalan walau ini Agent dimatikan."
                   checked={settings.monitor_enabled}
                   onChange={(v) => handleToggle("monitor_enabled", v)}
                   disabled={readOnly || isSaving}
@@ -247,7 +247,7 @@ export default function AgentPage() {
               </div>
             </Card>
 
-            <Card title="Penghemat Token" subtitle="Membatasi seberapa sering Agent Pemantau memanggil AI.">
+            <Card title="Konfigurasi" subtitle="Membatasi seberapa sering Agent Pemantau memanggil Agent.">
               <form onSubmit={handleSaveLimits} className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-xs font-semibold text-slate-700">
                   Jeda antar-analisis per titik
@@ -334,9 +334,9 @@ export default function AgentPage() {
                   style={{ width: `${monitorPct}%` }}
                 />
               </div>
-              <p className="m-0 mt-2 text-[11px] text-slate-500">
+              {/* <p className="m-0 mt-2 text-[11px] text-slate-500">
                 Data dicatat oleh workflow n8n ke tabel <code>agent_runs</code> setiap kali AI benar-benar dipanggil.
-              </p>
+              </p> */}
             </Card>
 
             <Card title="Analisis AI Terbaru">
