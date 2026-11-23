@@ -29,28 +29,31 @@ body {
   letter-spacing: -0.015em;
 }
 
-/* Pastikan semua tombol, link, selector, dan elemen interaktif memiliki cursor-pointer */
-button,
-a,
-select,
-summary,
-[role="button"],
-input[type="button"],
-input[type="submit"],
-input[type="reset"],
-.leaflet-interactive,
-.leaflet-control-zoom a {
-  font: inherit;
-  cursor: pointer !important;
-}
+/* Pastikan semua tombol, link, selector, dan elemen interaktif memiliki cursor-pointer.
+   Diletakkan di @layer base agar kelas utilitas Tailwind (mis. text-xs) tetap bisa menimpanya. */
+@layer base {
+  button,
+  a,
+  select,
+  summary,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  .leaflet-interactive,
+  .leaflet-control-zoom a {
+    font: inherit;
+    cursor: pointer !important;
+  }
 
-/* Cursor not-allowed untuk status nonaktif/disabled */
-button:disabled,
-input:disabled,
-select:disabled,
-[aria-disabled="true"],
-.disabled\:cursor-not-allowed:disabled {
-  cursor: not-allowed !important;
+  /* Cursor not-allowed untuk status nonaktif/disabled */
+  button:disabled,
+  input:disabled,
+  select:disabled,
+  [aria-disabled="true"],
+  .disabled\:cursor-not-allowed:disabled {
+    cursor: not-allowed !important;
+  }
 }
 
 .sensor-map,

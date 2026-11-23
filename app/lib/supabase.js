@@ -207,3 +207,75 @@ export async function markAllNotificationsReadInSupabase() {
     console.warn("Supabase update notifikasi error:", err);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Pengaturan AI Agent (tabel agent_settings, view v_agent_usage)
+// ---------------------------------------------------------------------------
+
+/**
+ * Mengambil pengaturan agent (satu baris, id = 1). null jika tabel belum dibuat.
+ */
+export async function fetchAgentSettings() {
+  try {
+    const { data, error } = await supabase.from("agent_settings").select("*").eq("id", 1).maybeSingle();
+    if (error) {
+      console.warn("Notice Supabase agent_settings:", error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Memperbarui sebagian pengaturan agent. Mengembalikan baris terbaru atau null bila gagal.
+ */
+export async function updateAgentSettings(patch) {
+  try {
+    const { data, error } = await supabase
+      .from("agent_settings")
+      .update({ ...patch, updated_at: new Date().toISOString() })
+      .eq("id", 1)
+      .select()
+      .maybeSingle();
+    if (error) {
+      console.warn("Gagal menyimpan agent_settings:", error.message);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Pemakaian agent 24 jam terakhir: { chat_24h, monitor_24h, tokens_24h }
+ */
+export async function fetchAgentUsage() {
+  try {
+    const { data, error } = await supabase.from("v_agent_usage").select("*").maybeSingle();
+    if (error) return null;
+    return data;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Notifikasi yang dibuat oleh AI Agent
+ */
+export async function fetchAgentNotifications(limit = 10) {
+  try {
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("source", "agent")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) return null;
+    return data;
+  } catch (err) {
+    return null;
+  }
+}

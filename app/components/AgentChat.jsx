@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useAgentSettings } from "../lib/useAgentSettings";
 
 // URL webhook dari node "When chat message received" (Chat Trigger) di n8n.
 // Diisi lewat variabel lingkungan VITE_N8N_CHAT_URL (lihat .env.example).
@@ -71,7 +72,13 @@ function FormattedText({ text }) {
   );
 }
 
-export function AgentChat() {
+/**
+ * variant "floating" : tombol mengambang + panel pop-up (dipakai di semua halaman)
+ * variant "page"     : panel chat penuh di dalam halaman /agent
+ * enabled            : false bila chat dimatikan dari halaman Agent (hemat token)
+ */
+export function AgentChat({ variant = "floating", enabled = true }) {
+  const isPage = variant === "page";
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([WELCOME_MESSAGE]);
   const [input, setInput] = useState("");
@@ -91,7 +98,7 @@ export function AgentChat() {
 
   async function sendMessage(text) {
     const chatInput = text.trim();
-    if (!chatInput || isSending) return;
+    if (!chatInput || isSending || !enabled) return;
 
     setInput("");
     setMessages((prev) => [...prev, { role: "user", text: chatInput }]);
@@ -153,6 +160,118 @@ export function AgentChat() {
 
   const showSuggestions = messages.length <= 1 && !isSending;
 
+  const chatPanel = (
+    <section
+      id={isPage ? undefined : "peatguard-agent-chat"}
+      className={
+        isPage
+          ? "flex h-[calc(100vh-9rem)] min-h-[460px] w-full flex-col overflow-hidden rounded-lg border border-slate-200/90 bg-white shadow-2xs"
+          : "fixed bottom-20 right-5 z-[70] flex h-[min(560px,calc(100vh-7rem))] w-[min(400px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl"
+      }
+      aria-label="Chat Asisten PeatGuard"
+    >
+      <header className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3">
+        <div>
+          <h2 className="m-0 text-sm font-semibold text-slate-800">Asisten PeatGuard</h2>
+          <p className="m-0 text-[11px] text-slate-500">
+            {enabled ? "AI · jawaban perlu dicek ulang di lapangan" : "Chat sedang dinonaktifkan"}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={resetConversation}
+          className="cursor-pointer shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+          title="Mulai percakapan baru"
+        >
+          Percakapan baru
+        </button>
+      </header>
+
+      <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3" aria-live="polite">
+        {messages.map((m, i) => (
+          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+            <div
+              className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed ${
+                m.role === "user"
+                  ? "rounded-br-sm bg-[#2563eb] text-white"
+                  : m.role === "error"
+                  ? "rounded-bl-sm border border-red-200 bg-red-50 text-red-700"
+                  : "rounded-bl-sm bg-slate-100 text-slate-800"
+              }`}
+            >
+              <FormattedText text={m.text} />
+            </div>
+          </div>
+        ))}
+
+        {isSending && (
+          <div className="flex justify-start">
+            <div className="rounded-lg rounded-bl-sm bg-slate-100 px-3 py-2 text-sm text-slate-500">
+              Agent sedang memeriksa data…
+            </div>
+          </div>
+        )}
+
+        {!enabled && (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+            Chat asisten sedang <strong>nonaktif</strong> untuk menghemat token. Aktifkan kembali melalui
+            tombol <strong>Chat Asisten</strong> di halaman Agent.
+          </div>
+        )}
+
+        {enabled && showSuggestions && (
+          <div className="space-y-1.5 pt-1">
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => sendMessage(s)}
+                className="cursor-pointer block w-full rounded-lg border border-slate-200 px-3 py-2 text-left text-xs text-slate-600 hover:border-blue-300 hover:bg-blue-50/60"
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          sendMessage(input);
+        }}
+        className="flex items-end gap-2 border-t border-slate-100 p-3"
+      >
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              sendMessage(input);
+            }
+          }}
+          rows={1}
+          maxLength={1000}
+          disabled={!enabled}
+          placeholder={enabled ? "Tulis pertanyaan…" : "Chat nonaktif"}
+          className="max-h-28 min-h-[38px] flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 disabled:bg-slate-50"
+          aria-label="Pertanyaan untuk asisten"
+        />
+        <button
+          type="submit"
+          disabled={!enabled || isSending || !input.trim()}
+          className="cursor-pointer rounded-lg bg-[#2563eb] px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Kirim
+        </button>
+      </form>
+    </section>
+  );
+
+  if (isPage) return chatPanel;
+  if (!enabled) return null; // tombol mengambang disembunyikan saat chat dimatikan
+
   return (
     <>
       {/* Tombol mengambang */}
@@ -169,101 +288,13 @@ export function AgentChat() {
         <span className="max-[480px]:hidden">{isOpen ? "Tutup Asisten" : "Tanya Asisten AI"}</span>
       </button>
 
-      {/* Panel chat */}
-      {isOpen && (
-        <section
-          id="peatguard-agent-chat"
-          className="fixed bottom-20 right-5 z-[70] flex h-[min(560px,calc(100vh-7rem))] w-[min(400px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl"
-          aria-label="Chat Asisten PeatGuard"
-        >
-          <header className="flex items-center justify-between border-b border-slate-100 bg-slate-50/70 px-4 py-3">
-            <div>
-              <h2 className="m-0 text-sm font-semibold text-slate-800">Asisten PeatGuard</h2>
-              <p className="m-0 text-[11px] text-slate-500">AI · jawaban perlu dicek ulang di lapangan</p>
-            </div>
-            <button
-              type="button"
-              onClick={resetConversation}
-              className="cursor-pointer shrink-0 whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700"
-              title="Mulai percakapan baru"
-            >
-              Percakapan baru
-            </button>
-          </header>
-
-          <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-3" aria-live="polite">
-            {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`max-w-[85%] rounded-lg px-3 py-2 text-sm leading-relaxed ${
-                    m.role === "user"
-                      ? "rounded-br-sm bg-[#2563eb] text-white"
-                      : m.role === "error"
-                      ? "rounded-bl-sm border border-red-200 bg-red-50 text-red-700"
-                      : "rounded-bl-sm bg-slate-100 text-slate-800"
-                  }`}
-                >
-                  <FormattedText text={m.text} />
-                </div>
-              </div>
-            ))}
-
-            {isSending && (
-              <div className="flex justify-start">
-                <div className="rounded-lg rounded-bl-sm bg-slate-100 px-3 py-2 text-sm text-slate-500">
-                  Agent sedang memeriksa data…
-                </div>
-              </div>
-            )}
-
-            {showSuggestions && (
-              <div className="space-y-1.5 pt-1">
-                {SUGGESTIONS.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => sendMessage(s)}
-                    className="cursor-pointer block w-full rounded-lg border border-slate-200 px-3 py-2 text-left text-xs text-slate-600 hover:border-blue-300 hover:bg-blue-50/60"
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              sendMessage(input);
-            }}
-            className="flex items-end gap-2 border-t border-slate-100 p-3"
-          >
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage(input);
-                }
-              }}
-              rows={1}
-              maxLength={1000}
-              placeholder="Tulis pertanyaan…"
-              className="max-h-28 min-h-[38px] flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
-              aria-label="Pertanyaan untuk asisten"
-            />
-            <button
-              type="submit"
-              disabled={isSending || !input.trim()}
-              className="cursor-pointer rounded-lg bg-[#2563eb] px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Kirim
-            </button>
-          </form>
-        </section>
-      )}
+      {isOpen && chatPanel}
     </>
   );
+}
+
+// Tombol chat mengambang yang mengikuti pengaturan on/off di halaman Agent
+export function FloatingAgentChat() {
+  const { settings } = useAgentSettings();
+  return <AgentChat variant="floating" enabled={settings.chat_enabled} />;
 }

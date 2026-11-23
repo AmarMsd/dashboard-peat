@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Footer } from "./Footer.jsx";
 import { Sidebar } from "./Sidebar.jsx";
-import { AgentChat } from "./AgentChat.jsx";
+import { FloatingAgentChat } from "./AgentChat.jsx";
 import { useSensorData } from "../context/SensorContext";
 import {
   supabase,
@@ -481,7 +481,7 @@ export function DashboardFrame({ active, children }) {
         {children}
         <Footer />
       </div>
-      <AgentChat />
+      {active !== "Agent" && <FloatingAgentChat />}
 
     </div>
   );
