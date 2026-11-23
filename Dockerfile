@@ -9,11 +9,11 @@ WORKDIR /app
 RUN npm ci --omit=dev
 
 FROM node:24-alpine AS build-env
-# Variabel VITE_* harus tersedia saat build:
-#   docker build --build-arg VITE_N8N_CHAT_URL=https://... -t peatguard-dashboard .
-ARG VITE_N8N_CHAT_URL
+# Variabel VITE_* dibaca saat build (opsional):
+#   docker build --build-arg VITE_API_BASE=https://... -t peatguard-dashboard .
+# URL chat n8n TIDAK perlu di sini; isi saat menjalankan container:
+#   docker run -e N8N_CHAT_URL=https://.../webhook/<id>/chat -p 3000:3000 peatguard-dashboard
 ARG VITE_API_BASE
-ENV VITE_N8N_CHAT_URL=$VITE_N8N_CHAT_URL
 ENV VITE_API_BASE=$VITE_API_BASE
 COPY . /app/
 COPY --from=development-dependencies-env /app/node_modules /app/node_modules
