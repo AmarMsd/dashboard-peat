@@ -3,7 +3,7 @@ export const defaultSensors = [
   {
     id: "PG-001",
     nodeIndex: 1,
-    name: "Titik Pantau 1",
+    name: "Parongpong",
     region: "Stasiun 1 (Koordinat Telemetri)",
     lat: -6.8303,
     lng: 107.5867,
@@ -17,7 +17,7 @@ export const defaultSensors = [
   {
     id: "PG-002",
     nodeIndex: 2,
-    name: "Titik Pantau 2",
+    name: "Baleendah",
     region: "Stasiun 2 (Koordinat Telemetri)",
     lat: -6.8320,
     lng: 107.5910,
@@ -31,7 +31,7 @@ export const defaultSensors = [
   {
     id: "PG-003",
     nodeIndex: 3,
-    name: "Titik Pantau 3",
+    name: "Rancaupas",
     region: "Stasiun 3 (Koordinat Telemetri)",
     lat: -6.8285,
     lng: 107.5815,
@@ -46,12 +46,12 @@ export const defaultSensors = [
 
 // Daftar 9 Topik Telemetri MQTT Aktif (3 Parameter x 3 Titik Pantau)
 export const initialMqttTopics = [
-  // Titik Pantau 1
+  // Parongpong
   {
     topic: "sensor/soil/moisture1",
     param: "moisture",
     nodeIndex: 1,
-    stationName: "Titik Pantau 1",
+    stationName: "Parongpong",
     label: "Kelembapan Tanah 1",
     unit: "%",
     value: 65.0,
@@ -62,7 +62,7 @@ export const initialMqttTopics = [
     topic: "sensor/soil/ph1",
     param: "ph",
     nodeIndex: 1,
-    stationName: "Titik Pantau 1",
+    stationName: "Parongpong",
     label: "pH Tanah 1",
     unit: "pH",
     value: 5.55,
@@ -73,19 +73,19 @@ export const initialMqttTopics = [
     topic: "sensor/soil/temp1",
     param: "temp",
     nodeIndex: 1,
-    stationName: "Titik Pantau 1",
+    stationName: "Parongpong",
     label: "Suhu Lapisan Tanah 1",
     unit: "°C",
     value: 28.5,
     status: "normal",
     lastUpdate: "Baru saja",
   },
-  // Titik Pantau 2
+  // Baleendah
   {
     topic: "sensor/soil/moisture2",
     param: "moisture",
     nodeIndex: 2,
-    stationName: "Titik Pantau 2",
+    stationName: "Baleendah",
     label: "Kelembapan Tanah 2",
     unit: "%",
     value: 41.8,
@@ -96,7 +96,7 @@ export const initialMqttTopics = [
     topic: "sensor/soil/ph2",
     param: "ph",
     nodeIndex: 2,
-    stationName: "Titik Pantau 2",
+    stationName: "Baleendah",
     label: "pH Tanah 2",
     unit: "pH",
     value: 3.8,
@@ -107,19 +107,19 @@ export const initialMqttTopics = [
     topic: "sensor/soil/temp2",
     param: "temp",
     nodeIndex: 2,
-    stationName: "Titik Pantau 2",
+    stationName: "Baleendah",
     label: "Suhu Lapisan Tanah 2",
     unit: "°C",
     value: 33.7,
     status: "warning",
     lastUpdate: "Baru saja",
   },
-  // Titik Pantau 3
+  // Rancaupas
   {
     topic: "sensor/soil/moisture3",
     param: "moisture",
     nodeIndex: 3,
-    stationName: "Titik Pantau 3",
+    stationName: "Rancaupas",
     label: "Kelembapan Tanah 3",
     unit: "%",
     value: 71.3,
@@ -130,7 +130,7 @@ export const initialMqttTopics = [
     topic: "sensor/soil/ph3",
     param: "ph",
     nodeIndex: 3,
-    stationName: "Titik Pantau 3",
+    stationName: "Rancaupas",
     label: "pH Tanah 3",
     unit: "pH",
     value: 4.6,
@@ -141,7 +141,7 @@ export const initialMqttTopics = [
     topic: "sensor/soil/temp3",
     param: "temp",
     nodeIndex: 3,
-    stationName: "Titik Pantau 3",
+    stationName: "Rancaupas",
     label: "Suhu Lapisan Tanah 3",
     unit: "°C",
     value: 28.6,

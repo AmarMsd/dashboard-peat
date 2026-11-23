@@ -30,9 +30,9 @@ function generateInitialHistoricalData() {
   const records = [];
   const now = Date.now();
   const intervals = [
-    { label: "Titik Pantau 1 - Rangsang Barat", id: "PG-001", baseM: 68, basePh: 4.2, baseT: 28 },
-    { label: "Titik Pantau 2 - Sungai Tohor", id: "PG-002", baseM: 42, basePh: 3.8, baseT: 32 },
-    { label: "Titik Pantau 3 - Kuala Kampar", id: "PG-003", baseM: 71, basePh: 4.5, baseT: 27 },
+    { label: "Parongpong", id: "PG-001", baseM: 68, basePh: 4.2, baseT: 28 },
+    { label: "Baleendah", id: "PG-002", baseM: 42, basePh: 3.8, baseT: 32 },
+    { label: "Rancaupas", id: "PG-003", baseM: 71, basePh: 4.5, baseT: 27 },
   ];
 
   // Buat 36 log sampel mundur per 40 menit
