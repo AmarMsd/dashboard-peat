@@ -114,7 +114,10 @@ export default function RiwayatPage() {
       render: (val, row) => (
         <div>
           <span className="font-medium text-gray-800">{val}</span>
-          <span className="block text-[11px] font-mono text-gray-400">{row.sensorId}</span>
+          <span className="block text-[11px] font-mono text-gray-400">
+            {row.sensorId}
+            {row.latitude && row.longitude ? ` · (${Number(row.latitude).toFixed(3)}, ${Number(row.longitude).toFixed(3)})` : ""}
+          </span>
         </div>
       ),
     },

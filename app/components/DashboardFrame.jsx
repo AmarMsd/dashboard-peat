@@ -5,6 +5,7 @@ import { useSensorData } from "../context/SensorContext";
 
 const API_BASE = "http://127.0.0.1:8000/api";
 
+console.log("API_BASE:", API_BASE); 
 // Data cadangan lokal jika backend FastAPI belum dinyalakan
 const FALLBACK_NOTIFICATIONS = [
   {

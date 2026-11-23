@@ -57,7 +57,7 @@ function SensorDetail({ sensor }) {
 }
 
 export function MainMenu() {
-  const { sensors, selectedSensor, setSelectedSensor, connectionStatus, lastMessageTime } = useSensorData();
+  const { sensors, selectedSensor, setSelectedSensor, liveTopics, connectionStatus, lastMessageTime } = useSensorData();
 
   const activeCount = sensors.filter((s) => s.status === "normal").length;
   const warningCount = sensors.filter((s) => s.status !== "normal").length;
@@ -94,9 +94,9 @@ export function MainMenu() {
       {/* Stat cards */}
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3">
         <article className="rounded-xl border-l-4 border-[#2563eb] bg-white p-4 shadow-sm">
-          <p className="m-0 text-xs text-gray-500">Titik Sensor Aktif</p>
-          <p className="m-0 mt-2 text-3xl font-bold text-gray-800">{sensors.length}</p>
-          <p className="m-0 mt-1 text-xs text-blue-600">titik pantau terpasang</p>
+          <p className="m-0 text-xs text-gray-500">Titik Pantau Lapangan</p>
+          <p className="m-0 mt-2 text-3xl font-bold text-gray-800">{sensors.length} Stasiun</p>
+          <p className="m-0 mt-1 text-xs text-blue-600">9 topik telemetri realtime aktif</p>
         </article>
         <article className="rounded-xl border-l-4 border-emerald-500 bg-white p-4 shadow-sm">
           <p className="m-0 text-xs text-gray-500">Kondisi Gambut Aman</p>
@@ -108,15 +108,6 @@ export function MainMenu() {
           <p className="m-0 mt-2 text-3xl font-bold text-gray-800">{warningCount}</p>
           <p className="m-0 mt-1 text-xs text-amber-600">rawan kering / suhu tinggi</p>
         </article>
-        {/* <article className="rounded-xl border-l-4 border-indigo-400 bg-white p-4 shadow-sm">
-          <p className="m-0 text-xs text-gray-500">Status Koneksi MQTT</p>
-          <p className="m-0 mt-2 text-xl font-bold text-gray-800">
-            {connectionStatus === "connected" ? "Terhubung" : connectionStatus === "connecting" ? "Menghubungkan" : "Offline"}
-          </p>
-          <p className="m-0 mt-1 text-xs text-indigo-600">
-            {lastMessageTime ? "Transmisi realtime masuk" : "Broker wss aktif"}
-          </p>
-        </article> */}
       </div>
 
       {/* Map + List */}
@@ -176,6 +167,80 @@ export function MainMenu() {
           </div>
         </aside>
       </div>
+
+      {/* Realtime 9-Topics Telemetry Feed Section */}
+      <section className="mt-6 rounded-xl bg-white p-5 shadow-sm border border-gray-100">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="m-0 text-sm font-semibold text-gray-800">
+                Aliran 9 Topik Telemetri Realtime (MQTT Live Feeds)
+              </h2>
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">
+                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                9 Topik Berlangganan Aktif
+              </span>
+            </div>
+            <p className="m-0 mt-0.5 text-xs text-gray-500">
+              Setiap Titik Pantau (Node) menggabungkan 3 parameter spesifik (Kelembapan, pH, dan Suhu) dari topik sensor masing-masing.
+            </p>
+          </div>
+          <span className="text-xs text-gray-400 font-mono">
+            Broker: wss://mqtt.amarmsd.my.id
+          </span>
+        </div>
+
+        {/* 3 Columns Grouped by Node Station */}
+        <div className="grid gap-4 md:grid-cols-3">
+          {[1, 2, 3].map((nodeIdx) => {
+            const station = sensors.find((s) => s.nodeIndex === nodeIdx) || sensors[nodeIdx - 1];
+            const nodeTopics = (liveTopics || []).filter((t) => t.nodeIndex === nodeIdx);
+
+            return (
+              <div
+                key={nodeIdx}
+                className={`rounded-xl border p-4 transition-all ${
+                  selectedSensor?.nodeIndex === nodeIdx
+                    ? "border-blue-400 bg-blue-50/20 shadow-xs"
+                    : "border-gray-200 bg-gray-50/40 hover:border-gray-300"
+                }`}
+              >
+                <div className="flex items-center justify-between border-b border-gray-200/60 pb-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className={`size-2.5 rounded-full ${statusDot[station?.status || "normal"]}`} />
+                    <span className="text-xs font-bold text-gray-800">{station?.name || `Titik Pantau ${nodeIdx}`}</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-gray-400">{station?.id}</span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {nodeTopics.map((topicItem) => (
+                    <div
+                      key={topicItem.topic}
+                      className="flex items-center justify-between rounded-lg bg-white p-2.5 shadow-2xs border border-gray-100"
+                    >
+                      <div className="min-w-0 pr-2">
+                        <p className="m-0 text-xs font-medium text-gray-700">{topicItem.label}</p>
+                        <p className="m-0 font-mono text-[10px] text-gray-400 truncate" title={topicItem.topic}>
+                          {topicItem.topic}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="font-mono text-sm font-bold text-gray-900">
+                          {topicItem.value} {topicItem.unit}
+                        </span>
+                        <span className="block text-[9px] text-gray-400">
+                          {topicItem.lastUpdate || "Aktif"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
     </main>
   );
 }

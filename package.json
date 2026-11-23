@@ -5,12 +5,14 @@
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
+    "bridge": "node scripts/mqtt_supabase_bridge.js",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
     "@react-router/node": "^8.5.2",
     "@react-router/serve": "^8.5.2",
+    "@supabase/supabase-js": "^2.119.2",
     "isbot": "^5.1.36",
     "leaflet": "^1.9.4",
     "mqtt": "^5.16.1",

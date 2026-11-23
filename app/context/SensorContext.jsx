@@ -1,11 +1,19 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from "react";
-import { defaultSensors, evaluateSensorStatus } from "../data/sensors";
+import { defaultSensors, initialMqttTopics, evaluateSensorStatus, getStatusReason } from "../data/sensors";
+import {
+  supabase,
+  fetchSensorLogsFromSupabase,
+  insertSensorLogToSupabase,
+  updateSensorCurrentStateInSupabase,
+} from "../lib/supabase";
 
 const SensorContext = createContext({
   sensors: defaultSensors,
   selectedSensor: defaultSensors[0],
   setSelectedSensor: () => {},
+  liveTopics: initialMqttTopics,
   connectionStatus: "connecting",
+  supabaseStatus: "connecting",
   lastMessageTime: null,
   historicalRecords: [],
   exportHistoryCSV: () => {},
@@ -62,41 +70,129 @@ function generateInitialHistoricalData() {
 export function SensorProvider({ children }) {
   const [sensors, setSensors] = useState(defaultSensors);
   const [selectedSensor, setSelectedSensor] = useState(defaultSensors[0]);
+  const [liveTopics, setLiveTopics] = useState(initialMqttTopics);
   const [connectionStatus, setConnectionStatus] = useState("connecting");
+  const [supabaseStatus, setSupabaseStatus] = useState("connecting");
   const [lastMessageTime, setLastMessageTime] = useState(null);
   const [historicalRecords, setHistoricalRecords] = useState([]);
   const mqttClientRef = useRef(null);
 
-  // Inisialisasi data historis dari localStorage atau generator awal
+  // Inisialisasi data historis dari Supabase (dengan fallback ke localStorage)
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setHistoricalRecords(parsed);
-          return;
+    let isCancelled = false;
+
+    async function loadData() {
+      // 1. Coba baca dari Supabase
+      const remoteLogs = await fetchSensorLogsFromSupabase(150);
+      if (remoteLogs && Array.isArray(remoteLogs) && remoteLogs.length > 0) {
+        const formatted = remoteLogs.map((row) => {
+          const t = new Date(row.created_at);
+          return {
+            id: `SB-${row.id}`,
+            timestamp: row.created_at,
+            timeFormatted: t.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+            dateFormatted: t.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }),
+            sensorId: row.sensor_id,
+            sensorName: row.sensor_name,
+            moisture: Number(row.moisture),
+            ph: Number(row.ph),
+            temperature: Number(row.temperature),
+            status: row.status,
+            reason: row.reason,
+          };
+        });
+        if (!isCancelled) {
+          setHistoricalRecords(formatted);
+          setSupabaseStatus("connected");
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(formatted.slice(0, 150)));
+          } catch (e) {}
         }
+        return;
       }
-    } catch (e) {
-      console.warn("Gagal membaca history dari storage", e);
+
+      // 2. Jika Supabase kosong/belum dibuat tabelnya, fallback ke localStorage
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            if (!isCancelled) {
+              setHistoricalRecords(parsed);
+              setSupabaseStatus("offline");
+            }
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Gagal membaca history dari storage", e);
+      }
+
+      // 3. Fallback ke initial mock data
+      const initial = generateInitialHistoricalData();
+      if (!isCancelled) {
+        setHistoricalRecords(initial);
+        setSupabaseStatus("offline");
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(initial.slice(0, 150)));
+        } catch (e) {}
+      }
     }
 
-    const initial = generateInitialHistoricalData();
-    setHistoricalRecords(initial);
+    loadData();
+
+    // Setup Supabase Realtime subscription
+    let channel = null;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initial.slice(0, 150)));
-    } catch (e) {}
+      channel = supabase
+        .channel("realtime-sensor-logs")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "sensor_logs" },
+          (payload) => {
+            const row = payload.new;
+            if (!row) return;
+            const t = new Date(row.created_at);
+            const liveEntry = {
+              id: `SB-${row.id}`,
+              timestamp: row.created_at,
+              timeFormatted: t.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+              dateFormatted: t.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }),
+              sensorId: row.sensor_id,
+              sensorName: row.sensor_name,
+              moisture: Number(row.moisture),
+              ph: Number(row.ph),
+              temperature: Number(row.temperature),
+              status: row.status,
+              reason: row.reason,
+            };
+            setHistoricalRecords((prev) => [liveEntry, ...prev.filter((p) => p.id !== liveEntry.id)].slice(0, 200));
+          }
+        )
+        .subscribe();
+    } catch (e) {
+      console.warn("Supabase Realtime notice:", e);
+    }
+
+    return () => {
+      isCancelled = true;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
   }, []);
 
-  // Simpan record baru ke state & localStorage
+  // Simpan record baru ke state & localStorage & Supabase
   const addHistoricalRecord = (nodeId, updatedFields) => {
     const targetSensor = sensors.find((s) => s.id === nodeId);
     if (!targetSensor) return;
 
     const merged = { ...targetSensor, ...updatedFields };
     const now = new Date();
+    const status = evaluateSensorStatus(merged.moisture, merged.temperature, merged.ph);
+    const reason = getStatusReason(merged);
+
     const newEntry = {
       id: `LOG-${now.getTime()}-${nodeId}`,
       timestamp: now.toISOString(),
@@ -107,7 +203,10 @@ export function SensorProvider({ children }) {
       moisture: merged.moisture,
       ph: merged.ph,
       temperature: merged.temperature,
-      status: evaluateSensorStatus(merged.moisture, merged.temperature, merged.ph),
+      latitude: merged.lat != null ? Number(merged.lat) : null,
+      longitude: merged.lng != null ? Number(merged.lng) : null,
+      status: status,
+      reason: reason,
     };
 
     setHistoricalRecords((prev) => {
@@ -117,6 +216,12 @@ export function SensorProvider({ children }) {
       } catch (e) {}
       return updated;
     });
+
+    // Sinkronisasi otomatis ke cloud database Supabase
+    insertSensorLogToSupabase(newEntry).then((success) => {
+      if (success) setSupabaseStatus("connected");
+    });
+    updateSensorCurrentStateInSupabase(merged);
   };
 
   // Koneksi MQTT Client
@@ -183,68 +288,125 @@ export function SensorProvider({ children }) {
         client.on("message", (topic, payload) => {
           if (!isMounted) return;
           const msgStr = payload.toString().trim();
-          let numericValue = parseFloat(msgStr);
+          let numericValue = null;
+          let parsedLat = null;
+          let parsedLng = null;
+          let parsedTimestamp = null;
+          let sensorField = null;
 
-          if (isNaN(numericValue)) {
-            try {
-              const obj = JSON.parse(msgStr);
-              numericValue = Number(obj.value ?? obj.val ?? obj.data);
-            } catch (e) {}
+          try {
+            const obj = JSON.parse(msgStr);
+            if (obj && typeof obj === "object") {
+              if (obj.value !== undefined) numericValue = Number(obj.value);
+              if (obj.latitude !== undefined && !isNaN(Number(obj.latitude))) {
+                parsedLat = Number(obj.latitude);
+              }
+              if (obj.longitude !== undefined && !isNaN(Number(obj.longitude))) {
+                parsedLng = Number(obj.longitude);
+              }
+              if (obj.timestamp) parsedTimestamp = String(obj.timestamp);
+              if (obj.sensor) sensorField = String(obj.sensor);
+            }
+          } catch (e) {
+            numericValue = parseFloat(msgStr);
           }
 
-          if (isNaN(numericValue)) return;
+          if (numericValue === null || isNaN(numericValue)) return;
 
-          const nowTimeStr = "Baru saja";
+          let param = null;
+          let nodeNum = null;
+
+          const match = topic.match(/sensor\/soil\/(moisture|ph|temp)(\d)/i);
+          if (match) {
+            param = match[1].toLowerCase();
+            nodeNum = parseInt(match[2], 10);
+          } else if (sensorField) {
+            const fieldMatch = sensorField.match(/(moisture|ph|temp)(\d)/i);
+            if (fieldMatch) {
+              param = fieldMatch[1].toLowerCase();
+              nodeNum = parseInt(fieldMatch[2], 10);
+            }
+          }
+
+          if (!nodeNum) return;
+          const targetId = `PG-00${nodeNum}`;
+          const nowTimeStr = parsedTimestamp || new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
           setLastMessageTime(new Date());
 
-          // Parsing topik:
-          // sensor/soil/moisture1 -> node 1 moisture
-          // sensor/soil/ph2 -> node 2 ph
-          // sensor/soil/temp3 -> node 3 temp
-          const match = topic.match(/sensor\/soil\/(moisture|ph|temp)(\d)/);
-          if (match) {
-            const param = match[1]; // "moisture" | "ph" | "temp"
-            const nodeNum = parseInt(match[2], 10); // 1 | 2 | 3
-            const targetId = `PG-00${nodeNum}`;
+          setSensors((prevSensors) =>
+            prevSensors.map((sensor) => {
+              if (sensor.nodeIndex === nodeNum || sensor.id === targetId) {
+                let updatedMoisture = sensor.moisture;
+                let updatedPh = sensor.ph;
+                let updatedTemp = sensor.temperature;
+                let updatedLat =
+                  parsedLat != null && !isNaN(parsedLat)
+                    ? parsedLat
+                    : sensor.lat != null
+                    ? sensor.lat
+                    : -6.8303;
+                let updatedLng =
+                  parsedLng != null && !isNaN(parsedLng)
+                    ? parsedLng
+                    : sensor.lng != null
+                    ? sensor.lng
+                    : 107.5867;
 
-            setSensors((prevSensors) =>
-              prevSensors.map((sensor) => {
-                if (sensor.nodeIndex === nodeNum || sensor.id === targetId) {
-                  let updatedMoisture = sensor.moisture;
-                  let updatedPh = sensor.ph;
-                  let updatedTemp = sensor.temperature;
+                if (param === "moisture") updatedMoisture = numericValue;
+                if (param === "ph") updatedPh = numericValue;
+                if (param === "temp") updatedTemp = numericValue;
 
-                  if (param === "moisture") updatedMoisture = numericValue;
-                  if (param === "ph") updatedPh = numericValue;
-                  if (param === "temp") updatedTemp = numericValue;
+                const newStatus = evaluateSensorStatus(updatedMoisture, updatedTemp, updatedPh);
 
-                  const newStatus = evaluateSensorStatus(updatedMoisture, updatedTemp, updatedPh);
+                const updatedSensor = {
+                  ...sensor,
+                  moisture: updatedMoisture,
+                  ph: updatedPh,
+                  temperature: updatedTemp,
+                  lat: updatedLat,
+                  lng: updatedLng,
+                  status: newStatus,
+                  lastReading: nowTimeStr,
+                };
 
-                  const updatedSensor = {
-                    ...sensor,
-                    moisture: updatedMoisture,
-                    ph: updatedPh,
-                    temperature: updatedTemp,
-                    status: newStatus,
-                    lastReading: nowTimeStr,
-                  };
+                // Otomatis perbarui selectedSensor ke data mutakhir yang baru saja masuk
+                setSelectedSensor(updatedSensor);
 
-                  // Perbarui selectedSensor jika sedang aktif
-                  setSelectedSensor((curr) => (curr?.id === targetId ? updatedSensor : curr));
+                // Tambahkan entri riwayat jika ada perubahan nilai
+                addHistoricalRecord(targetId, {
+                  moisture: updatedMoisture,
+                  ph: updatedPh,
+                  temperature: updatedTemp,
+                  lat: updatedLat,
+                  lng: updatedLng,
+                  timestampStr: parsedTimestamp,
+                });
 
-                  // Tambahkan entri riwayat jika ada perubahan nilai
-                  addHistoricalRecord(targetId, {
-                    moisture: updatedMoisture,
-                    ph: updatedPh,
-                    temperature: updatedTemp,
-                  });
+                return updatedSensor;
+              }
+              return sensor;
+            })
+          );
 
-                  return updatedSensor;
-                }
-                return sensor;
-              })
-            );
-          }
+          // Perbarui status daftar 9 topik telemetri realtime
+          setLiveTopics((prevTopics) =>
+            prevTopics.map((item) => {
+              const itemTopic = item.topic.toLowerCase();
+              const isMatch =
+                itemTopic === topic.toLowerCase() ||
+                (item.param === param && item.nodeIndex === nodeNum);
+
+              if (isMatch) {
+                return {
+                  ...item,
+                  value: numericValue,
+                  lastUpdate: nowTimeStr,
+                  isFresh: true,
+                };
+              }
+              return item;
+            })
+          );
         });
       } catch (err) {
         console.error("Gagal inisialisasi MQTT:", err);
@@ -305,7 +467,9 @@ export function SensorProvider({ children }) {
         sensors,
         selectedSensor,
         setSelectedSensor,
+        liveTopics,
         connectionStatus,
+        supabaseStatus,
         lastMessageTime,
         historicalRecords,
         exportHistoryCSV,
