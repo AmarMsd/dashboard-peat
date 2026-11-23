@@ -83,29 +83,50 @@ Maaf, permintaan ini tidak dapat diproses oleh Asisten PeatGuard. Saya hanya mem
 pencegahan kebakaran lahan gambut. Untuk keadaan darurat, hubungi BPBD atau Manggala Agni setempat.
 ```
 
-### 2.3 Gerbang on/off chat (WAJIB agar tombol di halaman Agent berlaku)
+### 2.3 Gerbang on/off & kuota chat (WAJIB agar tombol di halaman Agent berlaku)
 
-Tombol **Chat Asisten** di halaman `/agent` hanya mengubah tabel `agent_settings`. Supaya benar-benar
-menghemat token, workflow n8n harus membacanya **sebelum Guardrails** (Guardrails juga memakai token):
+> Ini **bukan tool baru untuk AI Agent**. Tool (di bawah AI Agent) dipakai *atas kemauan model*.
+> Gerbang dan pencatatan harus **selalu** berjalan, jadi dipasang sebagai **node biasa di jalur utama**
+> (garis horizontal), sebelum Guardrails dan sesudah AI Agent.
+
+Susunan akhir workflow chat (node bertanda ★ adalah node baru):
 
 ```
 When chat message received
-  → Supabase: Get Many  v_chat_gate   (Limit 1)
-  → IF {{ $json.allowed }} is true
-       ├─ true  → Guardrails → AI Agent → … (seperti sekarang)
-       └─ false → Set: output = "Asisten AI sedang tidak tersedia (dinonaktifkan atau kuota harian
-                                  habis). Silakan cek halaman Peringatan, atau hubungi 112/BPBD bila darurat."
+  → ★ Supabase "Cek Kuota Chat"
+  → ★ IF "Chat Diizinkan?"
+       ├─ true  → Guardrails ─ Pass → AI Agent → ★ Supabase "Catat Pemakaian" → ★ Set "Kirim Jawaban"
+       │                    └ Fail → fail session
+       └─ false → ★ Set "Chat Ditutup"
 ```
 
-Pada node Guardrails, pakai `{{ $('When chat message received').item.json.chatInput }}` sebagai teks yang
-diperiksa, karena output node Supabase menggantikan item sebelumnya.
+| Node | Jenis | Pengaturan |
+|---|---|---|
+| ★ Cek Kuota Chat | Supabase | Resource *Row* · Operation **Get Many** · Table `v_chat_gate` (ketik manual bila tidak muncul) · Limit `1` |
+| ★ Chat Diizinkan? | IF | Kondisi: `{{ $json.allowed }}` · tipe **Boolean** · **is true** |
+| ★ Catat Pemakaian | Supabase | Resource *Row* · Operation **Create** · Table `agent_runs` · kolom `kind` = `chat` |
+| ★ Kirim Jawaban | Edit Fields (Set) | Field `output` (String) = `{{ $('AI Agent').item.json.output }}` |
+| ★ Chat Ditutup | Edit Fields (Set) | Field `output` (String) = `Asisten AI sedang tidak tersedia (dinonaktifkan atau kuota harian habis). Silakan cek halaman Peringatan, atau hubungi 112/BPBD bila darurat.` |
 
 `allowed` bernilai `true` hanya jika chat aktif **dan** jumlah chat 24 jam terakhir masih di bawah
-`chat_daily_limit` (bawaan 200, bisa diubah operator). Karena dashboard publik, batas ini penting agar
-kuota tidak dihabiskan satu pengunjung.
+`chat_daily_limit` (bawaan 200, bisa diubah operator). Node *Catat Pemakaian* yang mengisi hitungan itu;
+tanpa node ini batas chat tidak pernah tercapai.
 
-**Wajib** untuk kuota chat: setelah AI Agent, tambahkan Supabase *Create* ke tabel `agent_runs` dengan
-`kind = chat`. Tanpa catatan ini, `chat_24h` selalu 0 dan batas chat tidak pernah tercapai.
+**Tiga penyesuaian pada node lama** (karena sekarang ada node lain di antara Chat Trigger dan node-node ini,
+data `chatInput`/`sessionId` tidak lagi otomatis ikut):
+
+1. **Guardrails** → teks yang diperiksa: `{{ $('When chat message received').item.json.chatInput }}`
+2. **AI Agent** → *Source for Prompt*: **Define below** →
+   `{{ $('When chat message received').item.json.chatInput }}`
+3. **Simple Memory** → *Session ID*: **Define below** →
+   `{{ $('When chat message received').item.json.sessionId }}`
+
+Mengapa perlu node **Kirim Jawaban** di akhir? Chat Trigger (mode *When Last Node Finishes*) mengirim
+hasil **node terakhir** ke dashboard. Setelah ditambah *Catat Pemakaian*, node terakhir berisi baris
+`agent_runs`, bukan jawaban AI, sehingga chat akan kosong. Node *Kirim Jawaban* mengembalikan field `output`.
+
+Kredensial Supabase di n8n harus memakai **Service Role Secret**: publik memang tidak diberi izin menulis
+ke `agent_runs`.
 
 ### 2.4 Pengaturan dashboard
 
