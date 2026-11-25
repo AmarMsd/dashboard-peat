@@ -147,7 +147,7 @@ export default function AgentPage() {
         <div className="mb-5">
           <h1 className="m-0 text-lg sm:text-xl font-bold tracking-tight text-slate-900">AI Agent PeatGuard</h1>
           <p className="m-0 mt-1 text-xs text-slate-500">
-            Tanya jawab dengan asisten AI dan lihat analisis otomatisnya. Pengaturan AI dikelola operator agar kuota tidak habis.
+            Tanya jawab dengan asisten AI dan lihat analisis otomatisnya. Pengaturan AI dikelola operator.
           </p>
         </div>
 
